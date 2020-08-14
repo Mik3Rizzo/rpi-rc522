@@ -22,7 +22,7 @@ setup(
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU License',
+        'LICENSE :: OSI APPROVED :: GNU AFFERO GENERAL PUBLIC LICENSE V3 OR LATER (AGPLV3+)',
         'Operating System :: OS Independent',
         'Topic :: Software Development',
         'Programming Language :: Python :: 2',
