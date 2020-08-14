@@ -5,14 +5,13 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),
-    'pirc522')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),'RC522-Python')))
 
-from pirc522 import __version__  # flake8: noqa
+from RC522-Python import __version__  # flake8: noqa
 sys.path.pop(0)
 
 setup(
-    name='pi-rc522',
+    name='RC522-Python',
     packages=find_packages(),
     include_package_data=True,
     version=__version__,
@@ -29,9 +28,9 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
     ],
-    author='ondryaso',
-    author_email='ondryaso@ondryaso.eu',
-    url='https://github.com/ondryaso/pi-rc522',
-    license='MIT',
-    install_requires=['spidev', 'RPi.GPIO'],
+    author='STEMinds',
+    author_email='contact@steminds.com',
+    url='https://github.com/STEMinds/RC522-Python',
+    license='GNU Lesser General Public License v3.0',
+    install_requires=['SPI-Py', 'RPi.GPIO'],
 )

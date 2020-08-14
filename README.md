@@ -7,7 +7,13 @@ A small class to interface with the NFC reader Module MFRC522 on the Raspberry P
 
 ## Requirements
 
-
+The software requires a version of SPI-Py, find it in the SPI-Py folder
+To install, from this folder run the following commands:
+Or get source code from Github:
+```
+cd SPI-Py
+sudo python3 setup.py install
+```
 pi-rc522 consists of two Python classes for controlling an SPI RFID module "RC522" using Raspberry Pi or Beaglebone Black. You can get this module on AliExpress or Ebay for $3.
 
 Based on [MFRC522-python](https://github.com/mxgxw/MFRC522-python/blob/master/README.md).
