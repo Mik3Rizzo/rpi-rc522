@@ -1,443 +1,480 @@
-import threading
+#!/usr/bin/env python
+# -*- coding: utf8 -*-
+#
+#    Copyright 2014,2018 Mario Gomez <mario.gomez@teubi.co> for MFRC522-Python
+#    Copyright (c) 2016 Ondřej Ondryáš {ondryaso} for pi-rc522
+#    Copyright (c) 2020 STEMinds for modifications and combining both libraries
+#
+#    This file contains parts from MFRC522-Python and pi-rc522
+#    MFRC522-Python and pi-rc522 is a simple Python implementation for
+#    the MFRC522 NFC Card Reader for the Raspberry Pi.
+#
+#    MFRC522-Python and pi-rc522 are free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    MFRC522-Python and pi-rc522 is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Lesser General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with MFRC522-Python and pi-rc522.  If not, see <http://www.gnu.org/licenses/>.
+#
+#    Original git of MFRC522-Python: https://github.com/mxgxw/MFRC522-python
+#    Original git of pi-rc522: https://github.com/ondryaso/pi-rc522
 
-RASPBERRY = object()
-BEAGLEBONE = object()
-board = RASPBERRY
-try:
-    # Try with Raspberry PI imports first
-    import spidev
-    import RPi.GPIO as GPIO
-    SPIClass = spidev.SpiDev
-    def_pin_rst = 22
-    def_pin_irq = 18
-    def_pin_mode = GPIO.BOARD
-except ImportError:
-    # If they failed, try with Beaglebone
-    import Adafruit_BBIO.SPI as SPI
-    import Adafruit_BBIO.GPIO as GPIO
-    SPIClass = SPI.SPI
-    board = BEAGLEBONE
-    def_pin_rst = "P9_23"
-    def_pin_irq = "P9_15"
-    def_pin_mode = None
+import RPi.GPIO as GPIO
+import spi
+import signal
+import time
 
 class RFID(object):
-    pin_rst = 22
-    pin_ce = 0
-    pin_irq = 18
 
-    mode_idle = 0x00
-    mode_auth = 0x0E
-    mode_receive = 0x08
-    mode_transmit = 0x04
-    mode_transrec = 0x0C
-    mode_reset = 0x0F
-    mode_crc = 0x03
+  NRSTPD = 22
 
-    auth_a = 0x60
-    auth_b = 0x61
+  MAX_LEN = 16
 
-    act_read = 0x30
-    act_write = 0xA0
-    act_increment = 0xC1
-    act_decrement = 0xC0
-    act_restore = 0xC2
-    act_transfer = 0xB0
+  PCD_IDLE       = 0x00
+  PCD_AUTHENT    = 0x0E
+  PCD_RECEIVE    = 0x08
+  PCD_TRANSMIT   = 0x04
+  PCD_TRANSCEIVE = 0x0C
+  PCD_RESETPHASE = 0x0F
+  PCD_CALCCRC    = 0x03
 
-    act_reqidl = 0x26
-    act_reqall = 0x52
-    act_anticl = 0x93
-    act_select = 0x93
-    act_end = 0x50
+  PICC_REQIDL    = 0x26
+  PICC_REQALL    = 0x52
+  PICC_ANTICOLL  = 0x93
+  PICC_SElECTTAG = 0x93
+  PICC_AUTHENT1A = 0x60
+  PICC_AUTHENT1B = 0x61
+  PICC_READ      = 0x30
+  PICC_WRITE     = 0xA0
+  PICC_DECREMENT = 0xC0
+  PICC_INCREMENT = 0xC1
+  PICC_RESTORE   = 0xC2
+  PICC_TRANSFER  = 0xB0
+  PICC_HALT      = 0x50
 
-    reg_tx_control = 0x14
-    length = 16
+  # support old code variables
+  auth_a = 0x60
+  auth_b = 0x61
 
-    antenna_gain = 0x04
+  MI_OK       = 0
+  MI_NOTAGERR = 1
+  MI_ERR      = 2
 
-#antenna_gain
-#  defines the receiver's signal voltage gain factor:
-#  000 18 dB HEX = 0x00
-#  001 23 dB HEX = 0x01
-#  010 18 dB HEX = 0x02  
-#  011 23 dB HEX = 0x03
-#  100 33 dB HEX = 0x04
-#  101 38 dB HEX = 0x05
-#  110 43 dB HEX = 0x06
-#  111 48 dB HEX = 0x07
-# 3 to 0 reserved - reserved for future use
+  Reserved00     = 0x00
+  CommandReg     = 0x01
+  CommIEnReg     = 0x02
+  DivlEnReg      = 0x03
+  CommIrqReg     = 0x04
+  DivIrqReg      = 0x05
+  ErrorReg       = 0x06
+  Status1Reg     = 0x07
+  Status2Reg     = 0x08
+  FIFODataReg    = 0x09
+  FIFOLevelReg   = 0x0A
+  WaterLevelReg  = 0x0B
+  ControlReg     = 0x0C
+  BitFramingReg  = 0x0D
+  CollReg        = 0x0E
+  Reserved01     = 0x0F
 
+  Reserved10     = 0x10
+  ModeReg        = 0x11
+  TxModeReg      = 0x12
+  RxModeReg      = 0x13
+  TxControlReg   = 0x14
+  TxAutoReg      = 0x15
+  TxSelReg       = 0x16
+  RxSelReg       = 0x17
+  RxThresholdReg = 0x18
+  DemodReg       = 0x19
+  Reserved11     = 0x1A
+  Reserved12     = 0x1B
+  MifareReg      = 0x1C
+  Reserved13     = 0x1D
+  Reserved14     = 0x1E
+  SerialSpeedReg = 0x1F
+
+  Reserved20        = 0x20
+  CRCResultRegM     = 0x21
+  CRCResultRegL     = 0x22
+  Reserved21        = 0x23
+  ModWidthReg       = 0x24
+  Reserved22        = 0x25
+  RFCfgReg          = 0x26
+  GsNReg            = 0x27
+  CWGsPReg          = 0x28
+  ModGsPReg         = 0x29
+  TModeReg          = 0x2A
+  TPrescalerReg     = 0x2B
+  TReloadRegH       = 0x2C
+  TReloadRegL       = 0x2D
+  TCounterValueRegH = 0x2E
+  TCounterValueRegL = 0x2F
+
+  Reserved30      = 0x30
+  TestSel1Reg     = 0x31
+  TestSel2Reg     = 0x32
+  TestPinEnReg    = 0x33
+  TestPinValueReg = 0x34
+  TestBusReg      = 0x35
+  AutoTestReg     = 0x36
+  VersionReg      = 0x37
+  AnalogTestReg   = 0x38
+  TestDAC1Reg     = 0x39
+  TestDAC2Reg     = 0x3A
+  TestADCReg      = 0x3B
+  Reserved31      = 0x3C
+  Reserved32      = 0x3D
+  Reserved33      = 0x3E
+  Reserved34      = 0x3F
+
+  authed = False
+
+  serNum = []
+
+  def __init__(self, device='/dev/spidev0.0', speed=1000000):
+
+    spi.openSPI(device=device,speed=speed)
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(self.NRSTPD, GPIO.OUT)
+    GPIO.output(self.NRSTPD, 1)
+    self.init()
+
+  def init(self):
+
+    GPIO.output(self.NRSTPD, 1)
+
+    self.reset();
+
+    self.dev_write(self.TModeReg, 0x8D)
+    self.dev_write(self.TPrescalerReg, 0x3E)
+    self.dev_write(self.TReloadRegL, 30)
+    self.dev_write(self.TReloadRegH, 0)
+
+    self.dev_write(self.TxAutoReg, 0x40)
+    self.dev_write(self.ModeReg, 0x3D)
+
+    self.set_antenna_on()
+
+  def reset(self):
     authed = False
-    irq = threading.Event()
+    self.dev_write(self.CommandReg, self.PCD_RESETPHASE)
 
-    def __init__(self, bus=0, device=0, speed=1000000, pin_rst=def_pin_rst,
-            pin_ce=0, pin_irq=def_pin_irq, pin_mode = def_pin_mode):
-        self.pin_rst = pin_rst
-        self.pin_ce = pin_ce
-        self.pin_irq = pin_irq
+  def dev_write(self, addr, val):
+    spi.transfer(((addr<<1)&0x7E,val))
 
-        self.spi = SPIClass()
-        self.spi.open(bus, device)
-        if board == RASPBERRY:
-            self.spi.max_speed_hz = speed
-        else:
-            self.spi.mode = 0
-            self.spi.msh = speed
+  def dev_read(self, addr):
+    val = spi.transfer((((addr<<1)&0x7E) | 0x80,0))
+    return val[1]
 
-        if pin_mode is not None:
-            GPIO.setmode(pin_mode)
-        if pin_rst != 0:
-            GPIO.setup(pin_rst, GPIO.OUT)
-            GPIO.output(pin_rst, 1)
-        GPIO.setup(pin_irq, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.add_event_detect(pin_irq, GPIO.FALLING,
-                callback=self.irq_callback)
-        if pin_ce != 0:
-            GPIO.setup(pin_ce, GPIO.OUT)
-            GPIO.output(pin_ce, 1)
-        self.init()
+  def set_bitmask(self, reg, mask):
+    tmp = self.dev_read(reg)
+    self.dev_write(reg, tmp | mask)
 
-    def init(self):
-        self.reset()
-        self.dev_write(0x2A, 0x8D)
-        self.dev_write(0x2B, 0x3E)
-        self.dev_write(0x2D, 30)
-        self.dev_write(0x2C, 0)
-        self.dev_write(0x15, 0x40)
-        self.dev_write(0x11, 0x3D)
-        self.dev_write(0x26, (self.antenna_gain<<4))
-        self.set_antenna(True)
+  def clear_bitmask(self, reg, mask):
+    tmp = self.dev_read(reg);
+    self.dev_write(reg, tmp & (~mask))
 
-    def spi_transfer(self, data):
-        if self.pin_ce != 0:
-            GPIO.output(self.pin_ce, 0)
-        r = self.spi.xfer2(data)
-        if self.pin_ce != 0:
-            GPIO.output(self.pin_ce, 1)
-        return r
+  def set_antenna_on(self):
+    temp = self.dev_read(self.TxControlReg)
+    if(~(temp & 0x03)):
+      self.set_bitmask(self.TxControlReg, 0x03)
 
-    def dev_write(self, address, value):
-        self.spi_transfer([(address << 1) & 0x7E, value])
+  def set_antenna_off(self):
+    self.clear_bitmask(self.TxControlReg, 0x03)
 
-    def dev_read(self, address):
-        return self.spi_transfer([((address << 1) & 0x7E) | 0x80, 0])[1]
+  def card_write(self,command,sendData):
+    backData = []
+    backLen = 0
+    status = self.MI_ERR
+    irqEn = 0x00
+    waitIRq = 0x00
+    lastBits = None
+    n = 0
+    i = 0
 
-    def set_bitmask(self, address, mask):
-        current = self.dev_read(address)
-        self.dev_write(address, current | mask)
+    if command == self.PCD_AUTHENT:
+      irqEn = 0x12
+      waitIRq = 0x10
+    if command == self.PCD_TRANSCEIVE:
+      irqEn = 0x77
+      waitIRq = 0x30
 
-    def clear_bitmask(self, address, mask):
-        current = self.dev_read(address)
-        self.dev_write(address, current & (~mask))
+    self.dev_write(self.CommIEnReg, irqEn|0x80)
+    self.clear_bitmask(self.CommIrqReg, 0x80)
+    self.set_bitmask(self.FIFOLevelReg, 0x80)
 
-    def set_antenna(self, state):
-        if state == True:
-            current = self.dev_read(self.reg_tx_control)
-            if ~(current & 0x03):
-                self.set_bitmask(self.reg_tx_control, 0x03)
-        else:
-            self.clear_bitmask(self.reg_tx_control, 0x03)
+    self.dev_write(self.CommandReg, self.PCD_IDLE);
 
-    def set_antenna_gain(self, gain):
-        """
-        Sets antenna gain from a value from 0 to 7.
-        """
-        if 0 <= gain <= 7:
-            self.antenna_gain = gain
+    while(i<len(sendData)):
+      self.dev_write(self.FIFODataReg, sendData[i])
+      i = i+1
 
-    def card_write(self, command, data):
-        back_data = []
-        back_length = 0
-        error = False
-        irq = 0x00
-        irq_wait = 0x00
-        last_bits = None
-        n = 0
+    self.dev_write(self.CommandReg, command)
 
-        if command == self.mode_auth:
-            irq = 0x12
-            irq_wait = 0x10
-        if command == self.mode_transrec:
-            irq = 0x77
-            irq_wait = 0x30
+    if command == self.PCD_TRANSCEIVE:
+      self.set_bitmask(self.BitFramingReg, 0x80)
 
-        self.dev_write(0x02, irq | 0x80)
-        self.clear_bitmask(0x04, 0x80)
-        self.set_bitmask(0x0A, 0x80)
-        self.dev_write(0x01, self.mode_idle)
+    i = 2000
+    while True:
+      n = self.dev_read(self.CommIrqReg)
+      i = i - 1
+      if ~((i!=0) and ~(n&0x01) and ~(n&waitIRq)):
+        break
 
-        for i in range(len(data)):
-            self.dev_write(0x09, data[i])
+    self.clear_bitmask(self.BitFramingReg, 0x80)
 
-        self.dev_write(0x01, command)
+    if i != 0:
+      if (self.dev_read(self.ErrorReg) & 0x1B)==0x00:
+        status = self.MI_OK
 
-        if command == self.mode_transrec:
-            self.set_bitmask(0x0D, 0x80)
+        if n & irqEn & 0x01:
+          status = self.MI_NOTAGERR
 
-        i = 2000
-        while True:
-            n = self.dev_read(0x04)
-            i -= 1
-            if ~((i != 0) and ~(n & 0x01) and ~(n & irq_wait)):
-                break
+        if command == self.PCD_TRANSCEIVE:
+          n = self.dev_read(self.FIFOLevelReg)
+          lastBits = self.dev_read(self.ControlReg) & 0x07
+          if lastBits != 0:
+            backLen = (n-1)*8 + lastBits
+          else:
+            backLen = n*8
 
-        self.clear_bitmask(0x0D, 0x80)
+          if n == 0:
+            n = 1
+          if n > self.MAX_LEN:
+            n = self.MAX_LEN
 
-        if i != 0:
-            if (self.dev_read(0x06) & 0x1B) == 0x00:
-                error = False
+          i = 0
+          while i<n:
+            backData.append(self.dev_read(self.FIFODataReg))
+            i = i + 1;
+      else:
+        status = self.MI_ERR
 
-                if n & irq & 0x01:
-                    print("E1")
-                    error = True
+    return (status,backData,backLen)
 
-                if command == self.mode_transrec:
-                    n = self.dev_read(0x0A)
-                    last_bits = self.dev_read(0x0C) & 0x07
-                    if last_bits != 0:
-                        back_length = (n - 1) * 8 + last_bits
-                    else:
-                        back_length = n * 8
 
-                    if n == 0:
-                        n = 1
+  def request(self, reqMode=0x26):
+    status = None
+    backBits = None
+    TagType = []
 
-                    if n > self.length:
-                        n = self.length
+    self.dev_write(self.BitFramingReg, 0x07)
 
-                    for i in range(n):
-                        back_data.append(self.dev_read(0x09))
-            else:
-                print("E2")
-                error = True
+    TagType.append(reqMode);
+    (status,backData,backBits) = self.card_write(self.PCD_TRANSCEIVE, TagType)
 
-        return (error, back_data, back_length)
+    if ((status != self.MI_OK) | (backBits != 0x10)):
+      status = self.MI_ERR
 
-    def request(self, req_mode=0x26):
-        """
-        Requests for tag.
-        Returns (False, None) if no tag is present, otherwise returns (True, tag type)
-        """
-        error = True
-        back_bits = 0
+    return (status,backBits)
 
-        self.dev_write(0x0D, 0x07)
-        (error, back_data, back_bits) = self.card_write(self.mode_transrec, [req_mode, ])
 
-        if error or (back_bits != 0x10):
-            return (True, None)
+  def anticoll(self):
+    backData = []
+    serNumCheck = 0
 
-        return (False, back_bits)
+    serNum = []
 
-    def anticoll(self):
-        """
-        Anti-collision detection.
-        Returns tuple of (error state, tag ID).
-        """
-        back_data = []
-        serial_number = []
+    self.dev_write(self.BitFramingReg, 0x00)
 
-        serial_number_check = 0
+    serNum.append(self.PICC_ANTICOLL)
+    serNum.append(0x20)
 
-        self.dev_write(0x0D, 0x00)
-        serial_number.append(self.act_anticl)
-        serial_number.append(0x20)
+    (status,backData,backBits) = self.card_write(self.PCD_TRANSCEIVE,serNum)
 
-        (error, back_data, back_bits) = self.card_write(self.mode_transrec, serial_number)
-        if not error:
-            if len(back_data) == 5:
-                for i in range(4):
-                    serial_number_check = serial_number_check ^ back_data[i]
+    if(status == self.MI_OK):
+      i = 0
+      if len(backData)==5:
+        while i<4:
+          serNumCheck = serNumCheck ^ backData[i]
+          i = i + 1
+        if serNumCheck != backData[i]:
+          status = self.MI_ERR
+      else:
+        status = self.MI_ERR
 
-                if serial_number_check != back_data[4]:
-                    error = True
-            else:
-                error = True
+    return (status,backData)
 
-        return (error, back_data)
+  def calculate_crc(self, pIndata):
+    self.clear_bitmask(self.DivIrqReg, 0x04)
+    self.set_bitmask(self.FIFOLevelReg, 0x80);
+    i = 0
+    while i<len(pIndata):
+      self.dev_write(self.FIFODataReg, pIndata[i])
+      i = i + 1
+    self.dev_write(self.CommandReg, self.PCD_CALCCRC)
+    i = 0xFF
+    while True:
+      n = self.dev_read(self.DivIrqReg)
+      i = i - 1
+      if not ((i != 0) and not (n&0x04)):
+        break
+    pOutData = []
+    pOutData.append(self.dev_read(self.CRCResultRegL))
+    pOutData.append(self.dev_read(self.CRCResultRegM))
+    return pOutData
 
-    def calculate_crc(self, data):
-        self.clear_bitmask(0x05, 0x04)
-        self.set_bitmask(0x0A, 0x80)
+  def select_tag(self, serNum):
+    backData = []
+    buf = []
+    buf.append(self.PICC_SElECTTAG)
+    buf.append(0x70)
+    i = 0
+    while i<5:
+      buf.append(serNum[i])
+      i = i + 1
+    pOut = self.calculate_crc(buf)
+    buf.append(pOut[0])
+    buf.append(pOut[1])
+    (status, backData, backLen) = self.card_write(self.PCD_TRANSCEIVE, buf)
 
-        for i in range(len(data)):
-            self.dev_write(0x09, data[i])
-        self.dev_write(0x01, self.mode_crc)
+    if (status == self.MI_OK) and (backLen == 0x18):
+      print("Size: " + str(backData[0]))
+      return    backData[0]
+    else:
+      return 0
 
-        i = 255
-        while True:
-            n = self.dev_read(0x05)
-            i -= 1
-            if not ((i != 0) and not (n & 0x04)):
-                break
+  def card_auth(self, authMode, BlockAddr, Sectorkey, serNum):
+    buff = []
 
-        ret_data = []
-        ret_data.append(self.dev_read(0x22))
-        ret_data.append(self.dev_read(0x21))
+    # First byte should be the authMode (A or B)
+    buff.append(authMode)
 
-        return ret_data
+    # Second byte is the trailerBlock (usually 7)
+    buff.append(BlockAddr)
 
-    def select_tag(self, uid):
-        """
-        Selects tag for further usage.
-        uid -- list or tuple with four bytes tag ID
-        Returns error state.
-        """
-        back_data = []
+    # Now we need to append the authKey which usually is 6 bytes of 0xFF
+    i = 0
+    while(i < len(Sectorkey)):
+      buff.append(Sectorkey[i])
+      i = i + 1
+    i = 0
+
+    # Next we append the first 4 bytes of the UID
+    while(i < 4):
+      buff.append(serNum[i])
+      i = i +1
+
+    # Now we start the authentication itself
+    (status, backData, backLen) = self.card_write(self.PCD_AUTHENT,buff)
+
+    # Check if an error occurred
+    if not(status == self.MI_OK):
+      print("AUTH ERROR!!")
+    if not (self.dev_read(self.Status2Reg) & 0x08) != 0:
+      print("AUTH ERROR(status2reg & 0x08) != 0")
+    else:
+      self.authed = True
+
+    # Return the status
+    return status
+
+  def stop_crypto(self):
+    self.clear_bitmask(self.Status2Reg, 0x08)
+    self.authed = False
+
+  def cleanup(self):
+    """
+    Calls stop_crypto() if needed and cleanups GPIO.
+    """
+    if self.authed:
+        self.stop_crypto()
+    GPIO.cleanup()
+
+  def halt(self):
+    """Switch state to HALT"""
+
+    buf = []
+    buf.append(self.act_end)
+    buf.append(0)
+
+    crc = self.calculate_crc(buf)
+    self.clear_bitmask(0x08, 0x80)
+    self.card_write(self.mode_transrec, buf)
+    self.clear_bitmask(0x08, 0x08)
+    self.authed = False
+
+  def read(self, blockAddr):
+    recvData = []
+    recvData.append(self.PICC_READ)
+    recvData.append(blockAddr)
+    pOut = self.calculate_crc(recvData)
+    recvData.append(pOut[0])
+    recvData.append(pOut[1])
+    (status, backData, backLen) = self.card_write(self.PCD_TRANSCEIVE, recvData)
+    if not(status == self.MI_OK):
+      print("Error while reading!")
+    i = 0
+    if len(backData) == 16:
+      print("Sector "+str(blockAddr)+" "+str(backData))
+
+    return (status, backData)
+
+  def write(self, blockAddr, writeData):
+    buff = []
+    buff.append(self.PICC_WRITE)
+    buff.append(blockAddr)
+    crc = self.calculate_crc(buff)
+    buff.append(crc[0])
+    buff.append(crc[1])
+    (status, backData, backLen) = self.card_write(self.PCD_TRANSCEIVE, buff)
+    if not(status == self.MI_OK) or not(backLen == 4) or not((backData[0] & 0x0F) == 0x0A):
+        status = self.MI_ERR
+
+    print("%s backdata &0x0F == 0x0A %s" % (backLen, backData[0]&0x0F))
+    if status == self.MI_OK:
+        i = 0
         buf = []
-
-        buf.append(self.act_select)
-        buf.append(0x70)
-
-        for i in range(5):
-            buf.append(uid[i])
-
+        while i < 16:
+            buf.append(writeData[i])
+            i = i + 1
         crc = self.calculate_crc(buf)
         buf.append(crc[0])
         buf.append(crc[1])
+        (status, backData, backLen) = self.card_write(self.PCD_TRANSCEIVE,buf)
+        if not(status == self.MI_OK) or not(backLen == 4) or not((backData[0] & 0x0F) == 0x0A):
+            print("Error while writing")
+        if status == self.MI_OK:
+            print("Data written")
+    return status
 
-        (error, back_data, back_length) = self.card_write(self.mode_transrec, buf)
-
-        if (not error) and (back_length == 0x18):
-            return False
+  def dumpClassic1K(self, key, uid):
+    i = 0
+    while i < 64:
+        status = self.card_auth(self.PICC_AUTHENT1A, i, key, uid)
+        # Check if authenticated
+        if status == self.MI_OK:
+            self.read(i)
         else:
-            return True
+            print("Authentication error")
+        i = i+1
+    return status
 
-    def card_auth(self, auth_mode, block_address, key, uid):
-        """
-        Authenticates to use specified block address. Tag must be selected using select_tag(uid) before auth.
-        auth_mode -- RFID.auth_a or RFID.auth_b
-        key -- list or tuple with six bytes key
-        uid -- list or tuple with four bytes tag ID
-        Returns error state.
-        """
-        buf = []
-        buf.append(auth_mode)
-        buf.append(block_address)
+  def wait_for_tag(self):
+    # Scan for cards
+    waiting = True
+    while waiting:
+        (status,TagType) = self.request(self.PICC_REQIDL)
+        # If a card is found
+        if status == self.MI_OK:
+            # card detected
+            waiting = False
+    #self.init()
 
-        for i in range(len(key)):
-            buf.append(key[i])
-
-        for i in range(4):
-            buf.append(uid[i])
-
-        (error, back_data, back_length) = self.card_write(self.mode_auth, buf)
-        if not (self.dev_read(0x08) & 0x08) != 0:
-            error = True
-
-        if not error:
-            self.authed = True
-
-        return error
-
-    def stop_crypto(self):
-        """Ends operations with Crypto1 usage."""
-        self.clear_bitmask(0x08, 0x08)
-        self.authed = False
-
-    def halt(self):
-        """Switch state to HALT"""
-
-        buf = []
-        buf.append(self.act_end)
-        buf.append(0)
-
-        crc = self.calculate_crc(buf)
-        self.clear_bitmask(0x08, 0x80)
-        self.card_write(self.mode_transrec, buf)
-        self.clear_bitmask(0x08, 0x08)
-        self.authed = False
-
-    def read(self, block_address):
-        """
-        Reads data from block. You should be authenticated before calling read.
-        Returns tuple of (error state, read data).
-        """
-        buf = []
-        buf.append(self.act_read)
-        buf.append(block_address)
-        crc = self.calculate_crc(buf)
-        buf.append(crc[0])
-        buf.append(crc[1])
-        (error, back_data, back_length) = self.card_write(self.mode_transrec, buf)
-
-        if len(back_data) != 16:
-            error = True
-
-        return (error, back_data)
-
-    def write(self, block_address, data):
-        """
-        Writes data to block. You should be authenticated before calling write.
-        Returns error state.
-        """
-        buf = []
-        buf.append(self.act_write)
-        buf.append(block_address)
-        crc = self.calculate_crc(buf)
-        buf.append(crc[0])
-        buf.append(crc[1])
-        (error, back_data, back_length) = self.card_write(self.mode_transrec, buf)
-        if not(back_length == 4) or not((back_data[0] & 0x0F) == 0x0A):
-            error = True
-
-        if not error:
-            buf_w = []
-            for i in range(16):
-                buf_w.append(data[i])
-
-            crc = self.calculate_crc(buf_w)
-            buf_w.append(crc[0])
-            buf_w.append(crc[1])
-            (error, back_data, back_length) = self.card_write(self.mode_transrec, buf_w)
-            if not(back_length == 4) or not((back_data[0] & 0x0F) == 0x0A):
-                error = True
-
-        return error
-
-    def irq_callback(self, pin):
-        self.irq.set()
-
-    def wait_for_tag(self):
-        # enable IRQ on detect
-        self.init()
-        self.irq.clear()
-        self.dev_write(0x04, 0x00)
-        self.dev_write(0x02, 0xA0)
-        # wait for it
-        waiting = True
-        while waiting:
-            self.init()
-            #self.irq.clear()
-            self.dev_write(0x04, 0x00)
-            self.dev_write(0x02, 0xA0)
-
-            self.dev_write(0x09, 0x26)
-            self.dev_write(0x01, 0x0C)
-            self.dev_write(0x0D, 0x87)
-            waiting = not self.irq.wait(0.1)
-        self.irq.clear()
-        self.init()
-
-    def reset(self):
-        authed = False
-        self.dev_write(0x01, self.mode_reset)
-
-    def cleanup(self):
-        """
-        Calls stop_crypto() if needed and cleanups GPIO.
-        """
-        if self.authed:
-            self.stop_crypto()
-        GPIO.cleanup()
-
-    def util(self):
-        """
-        Creates and returns RFIDUtil object for this RFID instance.
-        If module is not present, returns None.
-        """
-        try:
-            from .util import RFIDUtil
-            return RFIDUtil(self)
-        except ImportError:
+  def util(self):
+    """
+    Creates and returns RFIDUtil object for this RFID instance.
+    If module is not present, returns None.
+    """
+    try:
+        from .util import RFIDUtil
+        return RFIDUtil(self)
+    except ImportError:
             return None
