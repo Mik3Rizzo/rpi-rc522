@@ -60,7 +60,9 @@ The repository is based on pi-rc522 which is licensed under MIT and MFRC522-Pyth
 because pi-rc522 to begin with is based on MFRC522-Python which is licensed under GNU, this library will also be licensed under GNU.
 
 Copyright 2014,2018 Mario Gomez <mario.gomez@teubi.co> for MFRC522-Python
+
 Copyright (c) 2016 Ondřej Ondryáš {ondryaso} for pi-rc522
+
 Copyright (c) 2020 STEMinds for modifications and combining both libraries
 
 This file contains parts from MFRC522-Python and pi-rc522
