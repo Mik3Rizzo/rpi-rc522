@@ -80,4 +80,5 @@ You should have received a copy of the GNU Lesser General Public License
 along with MFRC522-Python and pi-rc522.  If not, see <http://www.gnu.org/licenses/>.
 
 Original git of MFRC522-Python: [MFRC522-python](https://github.com/mxgxw/MFRC522-python).
+
 Original git of pi-rc522: [pi-rc522](https://github.com/ondryaso/pi-rc522).
