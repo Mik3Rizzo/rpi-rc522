@@ -4,7 +4,7 @@ import signal
 import time
 import sys
 
-from pirc522 import RFID
+from RC522-Python import RFID
 
 run = True
 rdr = RFID()
