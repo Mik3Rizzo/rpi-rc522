@@ -3,7 +3,7 @@
 import signal
 import time
 
-from RC522-Python import RFID
+from RC522_Python import RFID
 
 run = True
 rdr = RFID()
