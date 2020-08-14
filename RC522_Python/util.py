@@ -5,6 +5,7 @@
 #    Original git of pi-rc522: https://github.com/ondryaso/pi-rc522
 
 class RFIDUtil(object):
+    
     rfid = None
     method = None
     key = None

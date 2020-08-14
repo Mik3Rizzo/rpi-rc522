@@ -27,8 +27,6 @@
 
 import RPi.GPIO as GPIO
 import spi
-import signal
-import time
 
 class RFID(object):
 
@@ -466,7 +464,7 @@ class RFID(object):
         if status == self.MI_OK:
             # card detected
             waiting = False
-    #self.init()
+    self.init()
 
   def util(self):
     """
