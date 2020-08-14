@@ -7,12 +7,12 @@ The pirc522 library by Ondřej Ondryáš contained a full package that can be ea
 The MFRC522-Python script by Mario Gomez is another very nice code, written into MFRC522.py file that should be imported every time from the same directory.
 
 The pirc522 library stopped working due to changes in the raspberry pi system but the MFRC522 kept on working perfectly well.
-We at STEMinds combined both libraries, the pirc522 easy package with the MFRC522-Python working code to create an update RC-522 library for the Raspbrrry Pi
+We at STEMinds combined both libraries, the pirc522 easy package with the MFRC522-Python working code to create an update RC-522 library for the Raspberry Pi
 
 ## About MFRC522-python
 
 A small class to interface with the NFC reader Module MFRC522 on the Raspberry Pi. This is a Python port of the example code for the NFC module MF522-AN.
-Git link for the official MFRC522 library: https://github.com/mxgxw/MFRC522-python
+Git link for the official [MFRC522-python](https://github.com/mxgxw/MFRC522-python/blob/master/README.md) library.
 
 ## About pirc522
 
