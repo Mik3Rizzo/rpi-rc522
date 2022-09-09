@@ -5,7 +5,7 @@
 #    Original git of pi-rc522: https://github.com/ondryaso/pi-rc522
 
 class RFIDUtil(object):
-    
+
     rfid = None
     method = None
     key = None
@@ -40,7 +40,7 @@ class RFIDUtil(object):
         if self.debug:
             print("Selecting UID " + str(uid))
 
-        if self.uid != None:
+        if self.uid is not None:
             self.deauth()
 
         self.uid = uid
@@ -54,7 +54,8 @@ class RFIDUtil(object):
         self.key = key
 
         if self.debug:
-            print("Changing used auth key to " + str(key) + " using method " + ("A" if auth_method == self.rfid.auth_a else "B"))
+            print("Changing used auth key to " + str(key) + " using method " + (
+                "A" if auth_method == self.rfid.auth_a else "B"))
 
     def deauth(self):
         """
@@ -73,7 +74,7 @@ class RFIDUtil(object):
                 print("Stopping crypto1")
 
     def is_tag_set_auth(self):
-        return (self.uid != None) and (self.key != None) and (self.method != None)
+        return (self.uid is not None) and (self.key is not None) and (self.method is not None)
 
     def do_auth(self, block_address, force=False):
         """
@@ -100,7 +101,7 @@ class RFIDUtil(object):
         Returns error state.
         """
         addr = self.block_addr(sector, 3)
-        return self.rewrite(addr, key_a[:6] + auth_bits[:3] + (user_data, ) + key_b[:6])
+        return self.rewrite(addr, key_a[:6] + auth_bits[:3] + (user_data,) + key_b[:6])
 
     def rewrite(self, block_address, new_bytes):
         """
@@ -115,9 +116,10 @@ class RFIDUtil(object):
             (error, data) = self.rfid.read(block_address)
             if not error:
                 for i in range(len(new_bytes)):
-                    if new_bytes[i] != None:
+                    if new_bytes[i] is not None:
                         if self.debug:
-                            print("Changing pos " + str(i) + " with current value " + str(data[i]) + " to " + str(new_bytes[i]))
+                            print("Changing pos " + str(i) + " with current value " + str(data[i]) + " to " + str(
+                                new_bytes[i]))
 
                         data[i] = new_bytes[i]
 

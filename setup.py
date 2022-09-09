@@ -5,7 +5,7 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__),'RC522_Python')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'RC522_Python')))
 
 from RC522_Python import __version__
 sys.path.pop(0)
