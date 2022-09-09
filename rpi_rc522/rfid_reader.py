@@ -55,10 +55,6 @@ PICC_RESTORE = 0xC2
 PICC_TRANSFER = 0xB0
 PICC_HALT = 0x50
 
-# support old code variables
-auth_a = 0x60
-auth_b = 0x61
-
 MI_OK = 0
 MI_NOTAGERR = 1
 MI_ERR = 2
@@ -132,7 +128,11 @@ Reserved33 = 0x3E
 Reserved34 = 0x3F
 
 
-class RFID(object):
+class RFIDReader(object):
+
+    # support old code variables
+    auth_a = 0x60
+    auth_b = 0x61
 
     authed = False
     serNum = []
@@ -448,7 +448,7 @@ class RFID(object):
         If module is not present, returns None.
         """
         try:
-            from .util import RFIDUtil
+            from .rfid_util import RFIDUtil
             return RFIDUtil(self)
         except ImportError:
             return None

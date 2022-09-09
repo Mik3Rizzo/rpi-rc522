@@ -4,10 +4,10 @@ import signal
 import time
 import sys
 
-from rpi_rc522 import RFID
+from rpi_rc522 import RFIDReader
 
 run = True
-rdr = RFID()
+rdr = RFIDReader()
 util = rdr.util()
 util.debug = True
 
@@ -36,10 +36,10 @@ while run:
         util.set_tag(uid)
         print("\nAuthorizing")
         #util.auth(rdr.auth_a, [0x12, 0x34, 0x56, 0x78, 0x96, 0x92])
-        util.auth(rdr.auth_b, [0x74, 0x00, 0x52, 0x35, 0x00, 0xFF])
+        util.set_auth(rdr.auth_b, [0x74, 0x00, 0x52, 0x35, 0x00, 0xFF])
         print("\nReading")
-        util.read_out(4)
+        util.read_block(4)
         print("\nDeauthorizing")
-        util.deauth()
+        util.reset_auth()
 
         time.sleep(1)
