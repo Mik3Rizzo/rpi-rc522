@@ -381,14 +381,14 @@ class RFID(object):
         p_out = self.calculate_crc(recv_data)
         recv_data.append(p_out[0])
         recv_data.append(p_out[1])
-        (status, backData, backLen) = self.card_write(PCD_TRANSCEIVE, recv_data)
+        (status, back_data, back_len) = self.card_write(PCD_TRANSCEIVE, recv_data)
         if not (status == MI_OK):
             print("Error while reading!")
 
-        if len(backData) == 16:
-            print("Sector " + str(block_addr) + " " + str(backData))
+        if len(back_data) == 16:
+            print("Sector " + str(block_addr) + " " + str(back_data))
 
-        return status, backData
+        return status, back_data
 
     def write(self, block_addr, write_data):
 
@@ -398,6 +398,7 @@ class RFID(object):
         buff.append(crc[0])
         buff.append(crc[1])
         (status, back_data, back_len) = self.card_write(PCD_TRANSCEIVE, buff)
+
         if not (status == MI_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
             status = MI_ERR
 
