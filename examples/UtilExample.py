@@ -3,7 +3,7 @@
 import signal
 import time
 
-from RC522_Python import RFID
+from rpi_rc522 import RFID
 
 rdr = RFID()
 util = rdr.util()
