@@ -333,8 +333,7 @@ class RFID(object):
 
     def card_auth(self, auth_mode, block_addr, sector_key, ser_num):
 
-        # First byte should be the authMode (A or B)
-        # Second byte is the trailerBlock (usually 7)
+        # First byte should be the authMode (A or B), the second is the trailerBlock (usually 7)
         buff = [auth_mode, block_addr]
 
         # Now we need to append the authKey which usually is 6 bytes of 0xFF
@@ -374,17 +373,6 @@ class RFID(object):
         if self.authed:
             self.stop_crypto()
         GPIO.cleanup()
-
-    def halt(self):
-        """Switch state to HALT"""
-
-        buf = [self.act_end, 0]
-
-        crc = self.calculate_crc(buf)
-        self.clear_bitmask(0x08, 0x80)
-        self.card_write(self.mode_transrec, buf)
-        self.clear_bitmask(0x08, 0x08)
-        self.authed = False
 
     def read(self, block_addr):
 
