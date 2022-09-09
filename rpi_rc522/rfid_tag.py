@@ -4,6 +4,7 @@ from rfid_util import RFIDUtil
 Represents an RFID Tag.
 """
 class RFIDTag:
+
     rfid_reader = None
     method = None
     key = None
@@ -12,8 +13,10 @@ class RFIDTag:
 
     debug = False
 
-    def __init__(self, rfid_reader):
+    def __init__(self, rfid_reader, debug=False):
+
         self.rfid_reader = rfid_reader
+        self.debug = debug
 
     def set_tag(self, uid):
         """
