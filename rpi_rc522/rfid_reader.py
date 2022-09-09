@@ -441,14 +441,3 @@ class RFIDReader(object):
                 # card detected
                 waiting = False
         self.init()
-
-    def util(self):
-        """
-        Creates and returns RFIDUtil object for this RFID instance.
-        If module is not present, returns None.
-        """
-        try:
-            from .rfid_util import RFIDUtil
-            return RFIDUtil(self)
-        except ImportError:
-            return None

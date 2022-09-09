@@ -4,7 +4,7 @@
 #    Copyright (c) 2016 Ondřej Ondryáš {ondryaso} for pi-rc522
 #    Original git of pi-rc522: https://github.com/ondryaso/pi-rc522
 
-class RFIDUtil(object):
+class RFIDUtil:
 
     @staticmethod
     def get_block_address(sector_num, relative_block_num):

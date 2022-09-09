@@ -1,12 +1,9 @@
 from rfid_util import RFIDUtil
 
-
 """
 Represents an RFID Tag.
 """
-
 class RFIDTag:
-
     rfid_reader = None
     method = None
     key = None
