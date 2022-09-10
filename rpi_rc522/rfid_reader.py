@@ -385,8 +385,8 @@ class RFIDReader(object):
         if not (status == MI_OK):
             print("Error while reading!")
 
-        if len(back_data) == 16:
-            print("Sector " + str(block_addr) + " " + str(back_data))
+        #if len(back_data) == 16:
+        #    print("Sector " + str(block_addr) + " " + str(back_data))
 
         return status, back_data
 
