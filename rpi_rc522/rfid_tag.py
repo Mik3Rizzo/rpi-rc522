@@ -130,6 +130,7 @@ class RFIDTag:
         error = self.auth(block_address)
         if not error:
             (error, data) = self.rfid_reader.read(block_address)
+            print
             print(RFIDUtil.get_block_repr(block_address) + ": " + str(data))
         else:
             print("Error on " + RFIDUtil.get_block_repr(block_address))

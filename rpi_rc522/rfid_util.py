@@ -19,7 +19,7 @@ class RFIDUtil:
         Returns block representation of a given block address, e.g.
         S01B03 for sector trailer in second sector.
         """
-        return f"S{(block_address - (block_address % 4) / 4)}B{block_address % 4}"
+        return f"S{(block_address - (block_address % 4)) / 4}B{block_address % 4}"
 
     @staticmethod
     def get_access_bits(c1, c2, c3):
