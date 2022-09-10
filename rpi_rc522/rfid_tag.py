@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
-from rfid_util import RFIDUtil
+from .rfid_util import RFIDUtil
 
 """
 Represents an RFID Tag.
