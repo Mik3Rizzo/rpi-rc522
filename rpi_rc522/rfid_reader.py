@@ -4,6 +4,7 @@
 #    Copyright 2014,2018 Mario Gomez <mario.gomez@teubi.co> for MFRC522-Python
 #    Copyright (c) 2016 Ondřej Ondryáš {ondryaso} for pi-rc522
 #    Copyright (c) 2020 STEMinds for modifications and combining both libraries
+#    Copyright (c) 2022 Michele Rizzo (Mik3Rizzo) for modifications and combining both libraries
 #
 #    This file contains parts from MFRC522-Python and pi-rc522
 #    MFRC522-Python and pi-rc522 is a simple Python implementation for
@@ -127,7 +128,9 @@ Reserved32 = 0x3D
 Reserved33 = 0x3E
 Reserved34 = 0x3F
 
-
+"""
+Represents an RFID RC522 Reader.
+"""
 class RFIDReader(object):
 
     # support old code variables
@@ -137,7 +140,11 @@ class RFIDReader(object):
     authed = False
     serNum = []
 
-    def __init__(self, device='/dev/spidev0.0', speed=1000000):
+    debug = False
+
+    def __init__(self, device='/dev/spidev0.0', speed=1000000, debug=False):
+
+        self.debug = debug
 
         spi.openSPI(device=device, speed=speed)
         GPIO.setmode(GPIO.BOARD)
@@ -262,12 +269,12 @@ class RFIDReader(object):
         self.dev_write(BitFramingReg, 0x07)
 
         tag_type.append(req_mode)
-        (status, backData, backBits) = self.card_write(PCD_TRANSCEIVE, tag_type)
+        (status, back_data, back_bits) = self.card_write(PCD_TRANSCEIVE, tag_type)
 
-        if (status != MI_OK) | (backBits != 0x10):
+        if (status != MI_OK) | (back_bits != 0x10):
             status = MI_ERR
 
-        return status, backBits
+        return status, back_bits
 
     def anticoll(self):
         ser_num_check = 0
@@ -326,7 +333,8 @@ class RFIDReader(object):
         (status, backData, backLen) = self.card_write(PCD_TRANSCEIVE, buf)
 
         if (status == MI_OK) and (backLen == 0x18):
-            print("Size: " + str(backData[0]))
+            if self.debug:
+                print("Size: " + str(backData[0]))
             return backData[0]
         else:
             return 0
@@ -375,7 +383,11 @@ class RFIDReader(object):
         GPIO.cleanup()
 
     def read(self, block_addr):
-
+        """
+        Reads a desired block.
+        :param block_addr: block address number.
+        :return: the status and the block's content as list of 8 bit int.
+        """
         recv_data = [PICC_READ, block_addr]
 
         p_out = self.calculate_crc(recv_data)
@@ -384,9 +396,6 @@ class RFIDReader(object):
         (status, back_data, back_len) = self.card_write(PCD_TRANSCEIVE, recv_data)
         if not (status == MI_OK):
             print("Error while reading!")
-
-        #if len(back_data) == 16:
-        #    print("Sector " + str(block_addr) + " " + str(back_data))
 
         return status, back_data
 
@@ -401,8 +410,8 @@ class RFIDReader(object):
 
         if not (status == MI_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
             status = MI_ERR
-
-        print("%s backdata &0x0F == 0x0A %s" % (back_len, back_data[0] & 0x0F))
+        if self.debug:
+            print("%s backdata &0x0F == 0x0A %s" % (back_len, back_data[0] & 0x0F))
         if status == MI_OK:
             i = 0
             buf = []

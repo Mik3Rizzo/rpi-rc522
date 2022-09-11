@@ -24,7 +24,7 @@ class RFIDTag:
     def set_tag(self, uid):
         """
         Sets tag for further operations.
-        Calls deauth() if card is already set.
+        Resets the auth if card is already set.
         Calls RFID select_tag().
         Returns called select_tag() error state.
         """
@@ -39,7 +39,7 @@ class RFIDTag:
 
     def set_auth(self, auth_method, key):
         """
-        Sets authentication info for current tag
+        Sets the authentication info for current tag.
         """
         self.method = auth_method
         self.key = key
@@ -50,7 +50,8 @@ class RFIDTag:
 
     def reset_auth(self):
         """
-        Resets authentication info. Calls stop_crypto() if RFID is in auth state
+        Resets the authentication info.
+        Calls stop_crypto() if RFID is in auth state.
         """
         self.method = None
         self.key = None
@@ -65,6 +66,9 @@ class RFIDTag:
                 print("Stopping crypto1")
 
     def is_auth_set(self):
+        """
+        :return: True if the authentication info are set.
+        """
         return (self.uid is not None) and (self.key is not None) and (self.method is not None)
 
     def auth(self, block_address, force=False):
@@ -136,5 +140,7 @@ class RFIDTag:
             return False
 
     def dump(self, sectors=16):
+        dump = []
         for i in range(sectors * 4):
-            self.read_block(i)
+            dump.append(self.read_block(i))
+        return dump
