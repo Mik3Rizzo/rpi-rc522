@@ -11,13 +11,13 @@ from rpi_rc522 import __version__
 sys.path.pop(0)
 
 setup(
-    name='RC522-Python',
+    name='rpi_rc522',
     packages=find_packages(),
     include_package_data=True,
     version=__version__,
-    download_url='https://github.com/STEMinds/RC522-Python/archive/1.0.0.tar.gz',
+    download_url='https://github.com/Mik3Rizzo/rpi-rc522/archive/1.0.0.tar.gz',
     keywords=['python', 'raspberry-pi', 'RC522', 'RFID', 'NFC', 'SPI'],
-    description='Raspberry Pi Python library for SPI RFID RC522 module.',
+    description='Raspberry Pi python library for SPI RFID RC522 module.',
     long_description='Raspberry Pi Python library for SPI RFID RC522 module.',
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -31,10 +31,11 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.10',
     ],
-    author='STEMinds',
-    author_email='contact@steminds.com',
-    url='https://github.com/STEMinds/RC522-Python',
+    author='Mik3Rizzo',
+    author_email='m.rizzo006@studenti.unibs.it',
+    url='https://github.com/Mik3Rizzo/rpi-rc522',
     license='GNU Lesser General Public License v3.0',
     install_requires=['SPI-Py', 'RPi.GPIO'],
 )
