@@ -33,7 +33,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.10',
     ],
-    author='Mik3Rizzo',
+    author='Michele Rizzo',
     author_email='m.rizzo006@studenti.unibs.it',
     url='https://github.com/Mik3Rizzo/rpi-rc522',
     license='GNU Lesser General Public License v3.0',
