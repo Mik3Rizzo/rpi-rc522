@@ -11,7 +11,7 @@ from rpi_rc522 import __version__
 sys.path.pop(0)
 
 setup(
-    name='rpi_rc522',
+    name='RPi-RC522',
     packages=find_packages(),
     include_package_data=True,
     version=__version__,
