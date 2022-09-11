@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf8 -*-
 
 from .rfid_util import RFIDUtil
 

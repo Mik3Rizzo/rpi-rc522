@@ -1,30 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf8 -*-
-#
-#    Copyright 2014,2018 Mario Gomez <mario.gomez@teubi.co> for MFRC522-Python
-#    Copyright (c) 2016 Ondřej Ondryáš {ondryaso} for pi-rc522
-#    Copyright (c) 2020 STEMinds for modifications and combining both libraries
-#    Copyright (c) 2022 Michele Rizzo (Mik3Rizzo) for modifications and combining both libraries
-#
-#    This file contains parts from MFRC522-Python and pi-rc522
-#    MFRC522-Python and pi-rc522 is a simple Python implementation for
-#    the MFRC522 NFC Card Reader for the Raspberry Pi.
-#
-#    MFRC522-Python and pi-rc522 are free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    MFRC522-Python and pi-rc522 is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU Lesser General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with MFRC522-Python and pi-rc522.  If not, see <http://www.gnu.org/licenses/>.
-#
-#    Original git of MFRC522-Python: https://github.com/mxgxw/MFRC522-python
-#    Original git of pi-rc522: https://github.com/ondryaso/pi-rc522
 
 import RPi.GPIO as GPIO
 import spi

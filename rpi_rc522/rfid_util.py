@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf8 -*-
-#
-#    Copyright (c) 2016 Ondřej Ondryáš {ondryaso} for pi-rc522
-#    Original git of pi-rc522: https://github.com/ondryaso/pi-rc522
 
 class RFIDUtil:
 
