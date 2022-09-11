@@ -15,7 +15,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     version=__version__,
-    download_url='https://github.com/Mik3Rizzo/rpi-rc522/archive/1.0.0.tar.gz',
+    download_url='https://github.com/Mik3Rizzo/rpi-rc522/archive/v1.0.0-beta.tar.gz',
     keywords=['python', 'raspberry-pi', 'RC522', 'RFID', 'NFC', 'SPI'],
     description='Raspberry Pi python library for SPI RFID RC522 module.',
     long_description='Raspberry Pi Python library for SPI RFID RC522 module.',
