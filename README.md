@@ -19,6 +19,10 @@ It offers three handy objects:
 - **RFIDUtil**: util class.
 - **RFIDTag**: high level class to easily read/write data from/to an NFC tag.
 
+### Examples
+
+In the `example` folder you can find examples showing how to read, write, and dump data from a chip. They are thoroughly 
+commented, and should be easy to understand.
 
 ## Install
 
@@ -53,12 +57,6 @@ sudo python3 setup.py install
 | 3.3V | 1     | 3V3        |
 
 You can use [this](http://i.imgur.com/y7Fnvhq.png) image for reference.
-
-
-## Examples
-
-This repository includes a couple of examples showing how to read, write, and dump data from a chip. They are thoroughly 
-commented, and should be easy to understand.
 
 
 ## About
