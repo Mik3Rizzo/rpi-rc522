@@ -398,7 +398,7 @@ class RFIDReader(object):
             (status, back_data, back_len) = self.card_write(PCD_TRANSCEIVE, buf)
             if not (status == MI_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
                 print("Error while writing")
-            if status == MI_OK:
+            if status == MI_OK and self.debug:
                 print("Data written")
         return status
 
