@@ -111,16 +111,15 @@ class RFIDReader(object):
     auth_a = 0x60
     auth_b = 0x61
 
-    authed = False
-    serNum = []
-
-    debug = False
-
     def __init__(self, device='/dev/spidev0.0', speed=1000000, debug=False):
+
+        self.authed = False
+        self.serial_number = []
 
         self.debug = debug
 
         spi.openSPI(device=device, speed=speed)
+        GPIO.setwarnings(self.debug)
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(NRSTPD, GPIO.OUT)
         GPIO.output(NRSTPD, 1)
