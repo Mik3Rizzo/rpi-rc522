@@ -297,7 +297,7 @@ class RFIDReader(object):
         buf = [PICC_SElECTTAG, 0x70]
 
         i = 0
-        while i < 5:
+        while i < len(ser_num):
             buf.append(ser_num[i])
             i = i + 1
         p_out = self.calculate_crc(buf)
