@@ -297,7 +297,7 @@ class RFIDReader(object):
         buf = [PICC_SElECTTAG, 0x70]
 
         i = 0
-        while i < len(ser_num):
+        while i < 5:  # TODO should be an error for 4 bytes UIDs
             buf.append(ser_num[i])
             i = i + 1
         p_out = self.calculate_crc(buf)
