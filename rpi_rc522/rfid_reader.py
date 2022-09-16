@@ -30,6 +30,7 @@ PICC_RESTORE = 0xC2
 PICC_TRANSFER = 0xB0
 PICC_HALT = 0x50
 
+# Status
 MI_OK = 0
 MI_NOTAGERR = 1
 MI_ERR = 2
@@ -102,10 +103,11 @@ Reserved32 = 0x3D
 Reserved33 = 0x3E
 Reserved34 = 0x3F
 
-"""
-Represents an RFID RC522 Reader.
-"""
-class RFIDReader(object):
+
+class RFIDReader:
+    """
+    Represents an RFID RC522 Reader.
+    """
 
     # support old code variables
     auth_a = 0x60
@@ -297,7 +299,7 @@ class RFIDReader(object):
         buf = [PICC_SElECTTAG, 0x70]
 
         i = 0
-        while i < 5:  # TODO should be an error for 4 bytes UIDs
+        while i < 5:  # TODO even if the tag has 4 bytes UID, 5 bytes are considered
             buf.append(ser_num[i])
             i = i + 1
         p_out = self.calculate_crc(buf)

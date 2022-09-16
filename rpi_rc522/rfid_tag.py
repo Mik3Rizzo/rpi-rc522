@@ -2,10 +2,11 @@
 
 from .rfid_util import RFIDUtil
 
-"""
-Represents an RFID Tag.
-"""
+
 class RFIDTag:
+    """
+    Represents an RFID Tag.
+    """
 
     rfid_reader = None
     method = None
@@ -97,13 +98,21 @@ class RFIDTag:
         addr = RFIDUtil.get_block_address(sector, 3)
         return self.write_block(addr, key_a[:6] + auth_bits[:3] + (user_data,) + key_b[:6])
 
-    def write_block(self, block_address, new_bytes):
+    def write_block(self, block_address: int, new_bytes: list[int]) -> bool:
         """
-        Rewrites block with new bytes, keeping the old ones if None is passed. Tag and auth must be set - does auth.
-        Returns error state.
+        Writes new bytes to a specific block, keeping the old ones if None is passed.
+        Note: Tag and auth must be set. It does auth.
+
+        Example:
+            write_block(1, [None, 0x1a, None, 0x00])
+            will write the second and the fourth byte of the second block, leaving the other 14 bytes unaltered.
+
+        :param block_address: block absolute address
+        :param new_bytes: list of bytes to be written
+        :return True iff the operation has been successful, False otherwise
         """
         if not self.is_auth_set():
-            return True
+            return False
 
         error = self.auth(block_address)
         if not error:
@@ -121,14 +130,17 @@ class RFIDTag:
                 if self.debug:
                     print("Writing " + str(data) + " to " + RFIDUtil.get_block_repr(block_address))
 
-        return error
+        return not error
 
-    def read_block(self, block_address):
+    def read_block(self, block_address: int) -> list[int] or bool:
         """
-        Prints sector/block number and contents of block. Tag and auth must be set - does auth.
+        Reads a specific block.
+        Note: Tag and auth must be set. It does auth.
+        :param block_address: block absolute address
+        :return the read block as a list[int] or False in case of errors.
         """
         if not self.is_auth_set():
-            return True
+            return False
 
         error = self.auth(block_address)
         if not error:
