@@ -4,7 +4,8 @@ import RPi.GPIO as GPIO
 import spi
 
 
-NRSTPD = 22
+RST_BCM_PIN = 25  # BOARD 22
+
 
 MAX_LEN = 16
 
@@ -122,14 +123,14 @@ class RFIDReader:
 
         spi.openSPI(device=device, speed=speed)
         GPIO.setwarnings(self.debug)
-        GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(NRSTPD, GPIO.OUT)
-        GPIO.output(NRSTPD, 1)
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(RST_BCM_PIN, GPIO.OUT)
+        GPIO.output(RST_BCM_PIN, 1)
         self.init()
 
     def init(self):
 
-        GPIO.output(NRSTPD, 1)
+        GPIO.output(RST_BCM_PIN, 1)
 
         self.reset()
 
