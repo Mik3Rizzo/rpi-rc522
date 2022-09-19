@@ -99,9 +99,9 @@ Reserved33 = 0x3E
 Reserved34 = 0x3F
 
 
-class RFIDReader:
+class RC522:
     """
-    Represents an RC522 RFID Reader, connected through SPI.
+    Low level class that manages an RC522 RFID Reader, connected through SPI.
     """
 
     AUTH_A = 0x60
@@ -115,7 +115,6 @@ class RFIDReader:
     def __init__(self, device="/dev/spidev0.0", speed=1000000, debug=False):
 
         self.authed = False
-
         self.debug = debug
 
         spi.openSPI(device=device, speed=speed)
@@ -352,7 +351,7 @@ class RFIDReader:
 
         if (status == self.MI_STATUS_OK) and (back_len == 0x18):
             if self.debug:
-                print(f"[i] back_data[0] (size): {back_data[0]}")
+                print(f"[d] back_data[0] (size): {back_data[0]}")
             return status
         else:
             return self.MI_STATUS_ERR
@@ -384,7 +383,7 @@ class RFIDReader:
         (status, back_data, back_len) = self.__send_cmd(PCD_TRANSCEIVE, buff)
 
         if self.debug:
-            print(f"[i] {back_len} (backdata & 0x0F) == 0x0A {(back_data[0] & 0x0F) == 0x0A}")
+            print(f"[d] {back_len} (backdata & 0x0F) == 0x0A {(back_data[0] & 0x0F) == 0x0A}")
 
         if not (status == self.MI_STATUS_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
             status = self.MI_STATUS_ERR
@@ -402,28 +401,16 @@ class RFIDReader:
             if not (status == self.MI_STATUS_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
                 print("[e] Error while writing")
             if status == self.MI_STATUS_OK and self.debug:
-                print("[i] Data written")
+                print("[d] Data written")
         return status
 
-    # def dump_classic_1k(self, key, uid):
-    #     i = 0
-    #     while i < 64:
-    #         status = self.auth(PICC_AUTH_1A, i, key, uid)
-    #         # Check if authenticated
-    #         if status == MI_STATUS_OK:
-    #             self.read_block(i)
-    #         else:
-    #             print("Authentication error")
-    #         i = i + 1
-    #     return status
-
-    # def wait_for_tag(self):
-    #     # Scan for cards
-    #     waiting = True
-    #     while waiting:
-    #         (status, TagType) = self.request_tag(PICC_REQ_IDL)
-    #         # If a card is found
-    #         if status == MI_STATUS_OK:
-    #             # card detected
-    #             waiting = False
-    #     self.__init()
+    def wait_for_tag(self):
+        # Scan for tags
+        waiting = True
+        while waiting:
+            (status, tag_type) = self.request_tag()
+            # If a card is found
+            if status == self.MI_STATUS_OK:
+                # card detected
+                waiting = False
+        self.__init()

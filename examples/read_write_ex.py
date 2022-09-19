@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import time
-from rpi_rc522 import RFIDReader, RFIDManager, RFIDUtil
+from rpi_rc522 import RC522, RC522Manager, RFIDUtil
 
-reader = RFIDReader()
+reader = RC522()
 util = RFIDUtil
-tag = RFIDManager(reader)
+tag = RC522Manager(reader)
 
 key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
 
@@ -23,13 +23,13 @@ while True:
         if not error:
             print(f"UID: {uid[0]}{uid[1]}{uid[2]}{uid[3]}")
 
-            # Set tag as used in util. This will call RFIDReader.select_tag(uid)
-            tag.set_tag(uid)
+            # Set tag as used in util. This will call RC522.select_tag(uid)
+            tag.select_tag(uid)
 
-            # Save authorization info (key B). It doesn't call RFIDReader.card_auth(), that's called when needed
+            # Save authorization info (key B). It doesn't call RC522.card_auth(), that's called when needed
             tag.set_auth(reader.AUTH_B, key)
 
-            # Read block 4, RFIDReader.card_auth() will be called now
+            # Read block 4, RC522.card_auth() will be called now
             block_data = tag.read_block(4)
             print(block_data)  # list of int
             print([hex(x) for x in block_data])  # list of hex

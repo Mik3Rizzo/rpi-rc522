@@ -1,9 +1,9 @@
-# RPi-RFIDReader
+# RPi-RC522
 
-[RPi-RFIDReader](https://github.com/Mik3Rizzo/rpi-rc522) is a python library written to use the RFIDReader chip on the Raspberry Pi.
+[RPi-RC522](https://github.com/Mik3Rizzo/rpi-rc522) is a python library written to use the RC522 chip on the Raspberry Pi.
 You can get this cheap NFC reader chip for less than 3$.
 
-It is derived from [RFIDReader-Python](https://github.com/STEMinds/RC522-Python) by STEMinds, that is the
+It is derived from [RC522-Python](https://github.com/STEMinds/RC522-Python) by STEMinds, that is the
 combination of two other legacy libraries:
 
 - [pi-rc522](https://github.com/ondryaso/pi-rc522) library by Ondřej Ondryáš
@@ -15,9 +15,9 @@ combination of two other legacy libraries:
 This library is a cleaned, heavy refactored and sligthly improved version of the ones listed above.
 
 It offers three handy objects:
-- **RFIDReader**: low level class that manages the RFIDReader.
+- **RC522**: low level class that manages the RC522.
 - **RFIDUtil**: util class.
-- **RFIDManager**: high level class to easily read/write data from/to an NFC tag.
+- **RC522Manager**: high level class to easily read/write data from/to an NFC tag.
 
 ### Examples
 
@@ -36,7 +36,7 @@ sudo python3 setup.py install
 
 The SPI-Py is not related to this library and includes separated license.
 
-To install the RPi-RFIDReader library, run from the root folder:
+To install the RPi-RC522 library, run from the root folder:
 
 ```
 sudo python3 setup.py install
