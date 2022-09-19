@@ -23,17 +23,19 @@ class RFIDManager:
 
     debug = False
 
-    def __init__(self, rfid_reader, debug=False):
+    def __init__(self, device="/dev/spidev0.0", speed=1000000, debug=False):
 
-        self.rfid_reader = rfid_reader
+        self.rfid_reader = RFIDReader(device=device, speed=speed, debug=debug)
         self.debug = debug
 
     def set_tag(self, uid):
         """
-        Sets tag UID and calls RFIDReader.set_tag().
+        Sets tag UID and calls RFIDReader.select_tag().
         Resets the auth if card is already set.
         :param uid: UID of the tag
-        :return error state from method call
+        :return status: STATUS_MI_OK = 0
+                        STATUS_MI_NO_TAG_ERR = 1
+                        STATUS_MI_ERR = 2
         """
         if self.debug:
             print(f"[i] Selecting UID {uid}")
@@ -42,7 +44,8 @@ class RFIDManager:
             self.reset_auth()
 
         self.uid = uid
-        return self.rfid_reader.set_tag(uid)
+        status = self.rfid_reader.select_tag(uid)
+        return status
 
     def set_auth(self, auth_method, key):
         """
@@ -81,38 +84,46 @@ class RFIDManager:
         Calls RFIDReader.auth() with saved auth information if needed.
         :param block_address: absolute address of the block
         :param force: True to force the auth even is it already authed
-        :return error state from method call
+        :return status: STATUS_MI_OK = 0
+                        STATUS_MI_NO_TAG_ERR = 1
+                        STATUS_MI_ERR = 2
         """
         auth_data = (block_address, self.method, self.key, self.uid)
+        status = RFIDReader.MI_STATUS_OK
+
         if (self.last_auth != auth_data) or force:
             if self.debug:
                 print(f"[i] Calling reader.auth() on UID {self.uid}")
             self.last_auth = auth_data
-            error = self.rfid_reader.auth(self.method, block_address, self.key, self.uid)
-            return error
+            status = self.rfid_reader.auth(self.method, block_address, self.key, self.uid)
         else:
             if self.debug:
                 print("[i] Not calling reader.auth() - already authed")
-            return False
+        return status
 
-    def read_block(self, block_address: int) -> list[int] or bool:
+    def read_block(self, block_address: int) -> (int, list[int]):
         """
         Reads a specific block.
-        Note: Tag and auth must be set. It does auth.
-        :param block_address: block absolute address
-        :return the read block as a list[int] or False in case of errors.
+        Note: Tag and auth must be set since it does auth.
+        :param block_address: absolute address of the block
+        :return status: STATUS_MI_OK = 0
+                        STATUS_MI_NO_TAG_ERR = 1
+                        STATUS_MI_ERR = 2
+                read data (eventually empty)
         """
-        if not self.is_auth_set():
-            return False
+        data = []
+        status = RFIDReader.MI_STATUS_ERR
 
-        error = self.auth(block_address)
-        if not error:
-            (error, data) = self.rfid_reader.read_block(block_address)
-            if not error:
-                return data
+        if not self.is_auth_set():
+            return status, data
+
+        status = self.auth(block_address)
+        if status == RFIDReader.MI_STATUS_OK:
+            (status, data) = self.rfid_reader.read_block(block_address)
         else:
             print(f"[e] Error reading {get_block_repr(block_address)}")
-            return False
+
+        return status, data
 
     def write_block(self, block_address: int, new_bytes: list[int]) -> bool:
         """
@@ -125,25 +136,27 @@ class RFIDManager:
 
         :param block_address: block absolute address
         :param new_bytes: list of bytes to be written
-        :return True iff the operation has been successful, False otherwise
+        :return status: STATUS_MI_OK = 0
+                        STATUS_MI_NO_TAG_ERR = 1
+                        STATUS_MI_ERR = 2
         """
         if not self.is_auth_set():
-            return False
+            return RFIDReader.MI_STATUS_ERR
 
-        error = self.auth(block_address)
-        if not error:
-            (error, data) = self.rfid_reader.read_block(block_address)
-            if not error:
+        status = self.auth(block_address)
+        if status == RFIDReader.MI_STATUS_OK:
+            (status, data) = self.rfid_reader.read_block(block_address)
+            if status == RFIDReader.MI_STATUS_OK:
                 for i in range(len(new_bytes)):
                     if new_bytes[i] is not None:
                         if self.debug:
                             print(f"[i] Changing byte {i} - from {data[i]} to {new_bytes[i]}")
                         data[i] = new_bytes[i]
 
-                error = self.rfid_reader.write_block(block_address, data)
+                status = self.rfid_reader.write_block(block_address, data)
                 if self.debug:
                     print(f"[i] Writing {data} to {get_block_repr(block_address)}")
-        return not error
+        return status
 
     def write_trailer(self, sector_number, key_a=DEFAULT_KEY, access_bits=DEFAULT_AUTH_BITS,
                       user_data=0x69, key_b=DEFAULT_KEY):
@@ -156,18 +169,20 @@ class RFIDManager:
         :param key_b: key B of the tag
         :param access_bits: access bits
         :param user_data: eventual user data to append after the access bits
-        :return True iff the operation has been successful, False otherwise
+        :return status: STATUS_MI_OK = 0
+                        STATUS_MI_NO_TAG_ERR = 1
+                        STATUS_MI_ERR = 2
         """
         address = get_block_address(sector_number, 3)
         return self.write_block(address, key_a[:6] + access_bits[:3] + (user_data,) + key_b[:6])
 
-    def dump(self, sectors_number: int = DEFAULT_SECTORS_NUMBER) -> list[list[int] or bool]:
-        """
-        Dump the entire tag.
-        :param sectors_number: number of sectors
-        :return: dump data
-        """
-        dump = []
-        for i in range(sectors_number * 4):
-            dump.append(self.read_block(i))
-        return dump
+    # def dump(self, sectors_number: int = DEFAULT_SECTORS_NUMBER) -> list[list[int] or bool]:
+    #     """
+    #     Dump the entire tag.
+    #     :param sectors_number: number of sectors
+    #     :return: dump data
+    #     """
+    #     dump = []
+    #     for i in range(sectors_number * 4):
+    #         dump.append(self.read_block(i))
+    #     return dump

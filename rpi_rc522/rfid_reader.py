@@ -9,19 +9,19 @@ RST_BCM_PIN = 25  # BOARD 22
 MAX_LEN = 16
 
 PCD_IDLE = 0x00
-PCD_AUTHENT = 0x0E
+PCD_AUTH = 0x0E
 PCD_RECEIVE = 0x08
 PCD_TRANSMIT = 0x04
 PCD_TRANSCEIVE = 0x0C
-PCD_RESETPHASE = 0x0F
-PCD_CALCCRC = 0x03
+PCD_RESET_PHASE = 0x0F
+PCD_CALC_CRC = 0x03
 
-PICC_REQIDL = 0x26
-PICC_REQALL = 0x52
+PICC_REQ_IDL = 0x26
+PICC_REQ_ALL = 0x52
 PICC_ANTICOLL = 0x93
-PICC_SElECTTAG = 0x93
-PICC_AUTHENT1A = 0x60
-PICC_AUTHENT1B = 0x61
+PICC_SELECT_TAG = 0x93
+PICC_AUTH_1A = 0x60
+PICC_AUTH_1B = 0x61
 PICC_READ = 0x30
 PICC_WRITE = 0xA0
 PICC_DECREMENT = 0xC0
@@ -108,11 +108,11 @@ class RFIDReader:
     AUTH_B = 0x61
 
     # Status
-    MI_OK = 0
-    MI_NO_TAG_ERR = 1
-    MI_ERR = 2
+    MI_STATUS_OK = 0
+    MI_STATUS_NO_TAG_ERR = 1
+    MI_STATUS_ERR = 2
 
-    def __init__(self, device='/dev/spidev0.0', speed=1000000, debug=False):
+    def __init__(self, device="/dev/spidev0.0", speed=1000000, debug=False):
 
         self.authed = False
 
@@ -151,7 +151,7 @@ class RFIDReader:
         return val[1]
 
     def __reset(self):
-        self.__dev_write(CommandReg, PCD_RESETPHASE)
+        self.__dev_write(CommandReg, PCD_RESET_PHASE)
 
     def __set_bitmask(self, reg, mask):
         tmp = self.__dev_read(reg)
@@ -175,12 +175,12 @@ class RFIDReader:
     def __send_cmd(self, command, send_data):
         back_data = []
         back_len = 0
-        status = self.MI_ERR
+        status = self.MI_STATUS_ERR
         irq_en = 0x00
         wait_i_rq = 0x00
         i = 0
 
-        if command == PCD_AUTHENT:
+        if command == PCD_AUTH:
             irq_en = 0x12
             wait_i_rq = 0x10
         if command == PCD_TRANSCEIVE:
@@ -214,10 +214,10 @@ class RFIDReader:
 
         if i != 0:
             if (self.__dev_read(ErrorReg) & 0x1B) == 0x00:
-                status = self.MI_OK
+                status = self.MI_STATUS_OK
 
                 if n & irq_en & 0x01:
-                    status = self.MI_NO_TAG_ERR
+                    status = self.MI_STATUS_NO_TAG_ERR
 
                 if command == PCD_TRANSCEIVE:
                     n = self.__dev_read(FIFOLevelReg)
@@ -237,7 +237,7 @@ class RFIDReader:
                         back_data.append(self.__dev_read(FIFODataReg))
                         i = i + 1
             else:
-                status = self.MI_ERR
+                status = self.MI_STATUS_ERR
 
         return status, back_data, back_len
 
@@ -248,7 +248,7 @@ class RFIDReader:
         while i < len(p_in_data):
             self.__dev_write(FIFODataReg, p_in_data[i])
             i = i + 1
-        self.__dev_write(CommandReg, PCD_CALCCRC)
+        self.__dev_write(CommandReg, PCD_CALC_CRC)
         i = 0xFF
         while True:
             n = self.__dev_read(DivIrqReg)
@@ -268,8 +268,8 @@ class RFIDReader:
         tag_type.append(req_mode)
         (status, back_data, back_bits) = self.__send_cmd(PCD_TRANSCEIVE, tag_type)
 
-        if (status != self.MI_OK) | (back_bits != 0x10):
-            status = self.MI_ERR
+        if (status != self.MI_STATUS_OK) | (back_bits != 0x10):
+            status = self.MI_STATUS_ERR
 
         return status, back_bits
 
@@ -284,16 +284,16 @@ class RFIDReader:
 
         (status, backData, backBits) = self.__send_cmd(PCD_TRANSCEIVE, ser_num)
 
-        if status == self.MI_OK:
+        if status == self.MI_STATUS_OK:
             i = 0
             if len(backData) == 5:
                 while i < 4:
                     ser_num_check = ser_num_check ^ backData[i]
                     i = i + 1
                 if ser_num_check != backData[i]:
-                    status = self.MI_ERR
+                    status = self.MI_STATUS_ERR
             else:
-                status = self.MI_ERR
+                status = self.MI_STATUS_ERR
 
         return status, backData
 
@@ -315,10 +315,10 @@ class RFIDReader:
             i = i + 1
 
         # Now we start the authentication itself
-        (status, backData, backLen) = self.__send_cmd(PCD_AUTHENT, buff)
+        (status, backData, backLen) = self.__send_cmd(PCD_AUTH, buff)
 
         # Check if an error occurred
-        if not (status == self.MI_OK):
+        if not (status == self.MI_STATUS_OK):
             print("[e] Authentication error")
         if not (self.__dev_read(Status2Reg) & 0x08) != 0:
             print("   (status2reg & 0x08) != 0")
@@ -337,9 +337,9 @@ class RFIDReader:
 
         GPIO.cleanup()
 
-    def set_tag(self, uid):
+    def select_tag(self, uid):
 
-        buf = [PICC_SElECTTAG, 0x70]
+        buf = [PICC_SELECT_TAG, 0x70]
 
         i = 0
         while i < 5:  # TODO even if the tag has 4 bytes UID, 5 bytes are considered
@@ -350,12 +350,12 @@ class RFIDReader:
         buf.append(p_out[1])
         (status, back_data, back_len) = self.__send_cmd(PCD_TRANSCEIVE, buf)
 
-        if (status == self.MI_OK) and (back_len == 0x18):
+        if (status == self.MI_STATUS_OK) and (back_len == 0x18):
             if self.debug:
                 print(f"[i] back_data[0] (size): {back_data[0]}")
-            return back_data[0]
+            return status
         else:
-            return 0
+            return self.MI_STATUS_ERR
 
     def read_block(self, block_addr):
         """
@@ -369,7 +369,7 @@ class RFIDReader:
         recv_data.append(p_out[0])
         recv_data.append(p_out[1])
         (status, back_data, back_len) = self.__send_cmd(PCD_TRANSCEIVE, recv_data)
-        if not (status == self.MI_OK):
+        if not (status == self.MI_STATUS_OK):
             print("[e] Error while reading")
 
         return status, back_data
@@ -386,10 +386,10 @@ class RFIDReader:
         if self.debug:
             print(f"[i] {back_len} (backdata & 0x0F) == 0x0A {(back_data[0] & 0x0F) == 0x0A}")
 
-        if not (status == self.MI_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
-            status = self.MI_ERR
+        if not (status == self.MI_STATUS_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
+            status = self.MI_STATUS_ERR
 
-        if status == self.MI_OK:
+        if status == self.MI_STATUS_OK:
             i = 0
             buf = []
             while i < 16:
@@ -399,18 +399,18 @@ class RFIDReader:
             buf.append(crc[0])
             buf.append(crc[1])
             (status, back_data, back_len) = self.__send_cmd(PCD_TRANSCEIVE, buf)
-            if not (status == self.MI_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
+            if not (status == self.MI_STATUS_OK) or not (back_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
                 print("[e] Error while writing")
-            if status == self.MI_OK and self.debug:
+            if status == self.MI_STATUS_OK and self.debug:
                 print("[i] Data written")
         return status
 
     # def dump_classic_1k(self, key, uid):
     #     i = 0
     #     while i < 64:
-    #         status = self.auth(PICC_AUTHENT1A, i, key, uid)
+    #         status = self.auth(PICC_AUTH_1A, i, key, uid)
     #         # Check if authenticated
-    #         if status == MI_OK:
+    #         if status == MI_STATUS_OK:
     #             self.read_block(i)
     #         else:
     #             print("Authentication error")
@@ -421,9 +421,9 @@ class RFIDReader:
     #     # Scan for cards
     #     waiting = True
     #     while waiting:
-    #         (status, TagType) = self.request_tag(PICC_REQIDL)
+    #         (status, TagType) = self.request_tag(PICC_REQ_IDL)
     #         # If a card is found
-    #         if status == MI_OK:
+    #         if status == MI_STATUS_OK:
     #             # card detected
     #             waiting = False
     #     self.__init()
