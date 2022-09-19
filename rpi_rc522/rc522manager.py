@@ -29,7 +29,7 @@ class RC522Manager:
         self.rfid_reader = RC522(device=device, speed=speed, debug=debug)
         self.debug = debug
 
-    def scan_once(self) -> (int, list[int]):
+    def scan_once(self) -> (int, bytes):
         """
         Scans once for a tag.
         If there is one, requests it and performs anti-collision.
