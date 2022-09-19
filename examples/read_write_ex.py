@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import time
-from rpi_rc522 import RFIDReader, RFIDTag, RFIDUtil
+from rpi_rc522 import RFIDReader, RFIDManager, RFIDUtil
 
 reader = RFIDReader()
 util = RFIDUtil
-tag = RFIDTag(reader)
+tag = RFIDManager(reader)
 
 key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
 
@@ -14,11 +14,11 @@ while True:
     # Wait for tag
     reader.wait_for_tag()
     # Request tag
-    (error, data) = reader.request()
+    (error, data) = reader.request_tag()
 
     if not error:
         print("Detected tag")
-        (error, uid) = reader.anticoll()
+        (error, uid) = reader.anti_collision()
 
         if not error:
             print(f"UID: {uid[0]}{uid[1]}{uid[2]}{uid[3]}")
@@ -27,7 +27,7 @@ while True:
             tag.set_tag(uid)
 
             # Save authorization info (key B). It doesn't call RFIDReader.card_auth(), that's called when needed
-            tag.set_auth(reader.auth_b, key)
+            tag.set_auth(reader.AUTH_B, key)
 
             # Read block 4, RFIDReader.card_auth() will be called now
             block_data = tag.read_block(4)

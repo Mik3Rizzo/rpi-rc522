@@ -11,14 +11,14 @@ from rpi_rc522 import __version__
 sys.path.pop(0)
 
 setup(
-    name='RPi-RC522',
+    name='RPi-RFIDReader',
     packages=find_packages(),
     include_package_data=True,
     version=__version__,
     download_url='https://github.com/Mik3Rizzo/rpi-rc522/archive/refs/tags/v1.0.0-beta.tar.gz',
-    keywords=['python', 'raspberry-pi', 'RC522', 'RFID', 'NFC', 'SPI'],
-    description='Raspberry Pi python library for SPI RFID RC522 module.',
-    long_description='Raspberry Pi Python library for SPI RFID RC522 module.',
+    keywords=['python', 'raspberry-pi', 'RFIDReader', 'RFID', 'NFC', 'SPI'],
+    description='Raspberry Pi python library for SPI RFID RFIDReader module.',
+    long_description='Raspberry Pi Python library for SPI RFID RFIDReader module.',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
