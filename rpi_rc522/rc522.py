@@ -409,4 +409,4 @@ class RC522:
             if status == self.STATUS_OK:
                 # card detected
                 waiting = False
-        # self.__init()
+        self.__init()
