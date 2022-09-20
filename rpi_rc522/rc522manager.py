@@ -29,24 +29,23 @@ class RC522Manager:
         self.rfid_reader = RC522(device=device, speed=speed, debug=debug)
         self.debug = debug
 
-    def scan_once(self) -> (int, bytes):
+    def scan_once(self) -> (int, Optional[bytes]):
         """
         Scans once for a tag.
         If there is one, requests it and performs anti-collision.
         :return status: STATUS_MI_OK = 0
                         STATUS_MI_NO_TAG_ERR = 1
                         STATUS_MI_ERR = 2
-                uid: UID of the found tag
+                uid: UID of the found tag or None
         """
-        uid = []
         # Request tag
         (status, tag_type) = self.rfid_reader.request_tag()
         if status == self.rfid_reader.MI_STATUS_OK:  # there is a tag
             # Perform anti-collision
             (status, uid) = self.rfid_reader.anti_collision()
             if status == self.rfid_reader.MI_STATUS_OK:
-                return status, bytes(uid)
-        return status, bytes(uid)
+                return status, uid
+        return status, None
 
     def wait_for_tag(self):
         """
@@ -135,7 +134,7 @@ class RC522Manager:
                 print("[d] Not calling reader.auth() - already authed")
         return status
 
-    def read_block(self, block_address: int) -> (int, bytes):
+    def read_block(self, block_address: int) -> (int, Optional[bytes]):
         """
         Reads a specific block.
         Note: Tag and auth must be set, since it does auth.
@@ -143,13 +142,13 @@ class RC522Manager:
         :return status: STATUS_MI_OK = 0
                         STATUS_MI_NO_TAG_ERR = 1
                         STATUS_MI_ERR = 2
-                read data (eventually empty)
+                read data (eventually None)
         """
-        data = []
+        data = None
         status = RC522.MI_STATUS_ERR
 
         if not self.is_auth_set():
-            return status, bytes(data)
+            return status, data
 
         status = self.auth(block_address)
         if status == RC522.MI_STATUS_OK:
@@ -157,7 +156,7 @@ class RC522Manager:
         else:
             print(f"[e] Error reading {get_block_repr(block_address)}")
 
-        return status, bytes(data)
+        return status, data
 
     def write_block(self, block_address: int, new_bytes: list[int]) -> int:
         """
