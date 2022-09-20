@@ -4,21 +4,20 @@ import os
 import sys
 from setuptools import setup, find_packages
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'rpi_rc522')))
+#sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'rpi_rc522')))
 
 from rpi_rc522 import __version__
 
-sys.path.pop(0)
+#sys.path.pop(0)
 
 setup(
-    name='RPi-RC522',
+    name='rpi-rc522',
+    version=__version__,
     packages=find_packages(),
     include_package_data=True,
-    version=__version__,
     download_url='https://github.com/Mik3Rizzo/rpi-rc522/archive/refs/tags/v1.0.0-beta.tar.gz',
-    keywords=['python', 'raspberry-pi', 'RC522', 'RFID', 'NFC', 'SPI'],
+    keywords=['RC522', 'python', 'Raspberry Pi', 'RFID', 'NFC', 'SPI'],
     description='Raspberry Pi python3 library for SPI RFID RC522 module.',
-    long_description='Raspberry Pi python3 library for SPI RFID RC522 module.',
     classifiers=[
         'Development Status :: Beta',
         'Intended Audience :: Developers',

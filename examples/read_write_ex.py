@@ -14,7 +14,7 @@ while True:
     # Wait for tag
     reader.wait_for_tag()
     # Request tag
-    (error, data) = reader.request_tag()
+    (error, data) = reader.request()
 
     if not error:
         print("Detected tag")
