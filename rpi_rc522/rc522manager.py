@@ -33,9 +33,7 @@ class RC522Manager:
         """
         Scans once for a tag.
         If there is one, requests it and performs anti-collision.
-        :return status: 0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 uid: UID of the found tag or None
         """
         # Request tag
@@ -66,9 +64,7 @@ class RC522Manager:
         Selects a tag, setting the relative class attribute.
         Resets the auth if the tag's UID is already set.
         :param uid: UID of the tag
-        :return status: 0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         if self.uid is not None:
             self.reset_auth_info()
@@ -117,9 +113,7 @@ class RC522Manager:
         Authenticates a certain block using the saved auth info, only if needed.
         :param block_address: absolute address of the block
         :param force: True to force the auth even is it already authenticated
-        :return status: 0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         auth_data = (block_address, self.auth_method, self.key, self.uid)
         status = self.rfid_reader.STATUS_OK
@@ -139,9 +133,7 @@ class RC522Manager:
         Reads a specific block.
         Note: Tag and auth must be set, since it does auth.
         :param block_address: absolute address of the block
-        :return status: 0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 read data (eventually None)
         """
         data = None
@@ -169,9 +161,7 @@ class RC522Manager:
 
         :param block_address: absolute address of the block
         :param new_bytes: list of bytes to be written
-        :return status: 0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         if not self.is_auth_info_set():
             return RC522.STATUS_ERR
@@ -199,15 +189,12 @@ class RC522Manager:
         """
         Writes sector trailer (last block) of specified sector. Tag and auth must be set - does auth.
         If value is None, value of byte is kept.
-
         :param sector_number: number of the sector
         :param key_a: key A of the tag
         :param key_b: key B of the tag
         :param access_bits: access bits
         :param user_data: eventual user data to append after the access bits
-        :return status: 0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         address = get_block_address(sector_number, 3)
         return self.write_block(address, key_a[:6] + access_bits[:3] + (user_data,) + key_b[:6])
