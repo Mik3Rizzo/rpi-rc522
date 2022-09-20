@@ -130,7 +130,7 @@ class RC522:
         spi.openSPI(device=device, speed=speed)
         GPIO.setwarnings(self.debug)
         GPIO.setmode(GPIO.BCM)
-        GPIO.__setup_for_communication(self.PIN_RST_BCM, GPIO.OUT)
+        GPIO.setup(self.PIN_RST_BCM, GPIO.OUT)
         GPIO.output(self.PIN_RST_BCM, 1)
 
         self.__setup_for_communication()
@@ -330,7 +330,7 @@ class RC522:
         result = [self.__dev_read(self.REG_CRC_RESULT_L), self.__dev_read(self.REG_CRC_RESULT_M)]
         return result
 
-    def request_tag(self, req_mode=0x26):
+    def _request_tag(self, req_mode=0x26):
         """
         Checks to see if there is a tag in the vicinity.
         :param req_mode: mode of the request
@@ -350,6 +350,44 @@ class RC522:
         if (status != self.STATUS_OK) | (bits_len != 0x10):  # tag_type has to be 0x10 = 16 bits (2 bytes) length
             status = self.STATUS_ERR
 
+        return status, tag_type
+
+    def request_tag_once(self):
+        """
+        Performs a single tag request.
+        It setups the reader for the communication.
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
+                tag_type: type of the found tag
+                        0x4400 = Mifare_UltraLight
+                        0x0400 = Mifare_One(S50)
+                        0x0200 = Mifare_One(S70)
+                        0x0800 = Mifare_Pro(X)
+                        0x4403 = Mifare_DESFire
+        """
+        (status, tag_type) = self._request_tag()
+        self.__setup_for_communication()
+        return status, tag_type
+
+    def wait_for_tag(self):
+        """
+        Performs tag requests until a new one is discovered.
+        It setups the reader for the communication.
+        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
+                tag_type: type of the found tag
+                        0x4400 = Mifare_UltraLight
+                        0x0400 = Mifare_One(S50)
+                        0x0200 = Mifare_One(S70)
+                        0x0800 = Mifare_Pro(X)
+                        0x4403 = Mifare_DESFire
+        """
+        status = self.STATUS_ERR
+        tag_type = 0
+        waiting = True
+        while waiting:
+            (status, tag_type) = self._request_tag()
+            if status == self.STATUS_OK:  # card detected
+                waiting = False
+        self.__setup_for_communication()
         return status, tag_type
 
     def anti_collision(self):
@@ -405,17 +443,17 @@ class RC522:
         else:
             return self.STATUS_ERR
 
-    def auth(self, auth_mode, block_address, key, uid):
+    def auth(self, auth_method, block_number, key, uid):
         """
-        Performs the authentication for a given block and sets the authenticated class attribute to true.
-        :param auth_mode: 0x60 (AUTH_A) or 0x61 (AUTH_B)
-        :param block_address: block absolute address
+        Performs the authentication for a given block and sets the authenticated class attribute to True.
+        :param auth_method: 0x60 (AUTH_A) or 0x61 (AUTH_B)
+        :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
         :param key: key for the authentication
         :param uid: UID of the tag, truncated if > 4 bytes
         :return status: status of the authentication (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
         """
-        # cmd_data = auth_mode (1 byte) | block_address | key (6 bytes) | UID (4 bytes)
-        cmd_data = [auth_mode, block_address]
+        # cmd_data = auth_method (1 byte) | block_number | key (6 bytes) | UID (4 bytes)
+        cmd_data = [auth_method, block_number]
 
         for i in range(len(key)):
             cmd_data.append(key[i])
@@ -443,14 +481,14 @@ class RC522:
             self.__stop_crypto()
             self.authenticated = False
 
-    def read_block(self, block_address):
+    def read_block(self, block_number):
         """
         Reads a desired block.
-        :param block_address: block absolute address
+        :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
         :return status: status of the read operation (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
                 read_data: read data
         """
-        cmd_data = [self.ACT_READ, block_address]
+        cmd_data = [self.ACT_READ, block_number]
         crc = self.__calculate_crc(cmd_data)
         cmd_data.append(crc[0])
         cmd_data.append(crc[1])
@@ -461,14 +499,14 @@ class RC522:
             print("[e] Error while reading")
         return status, read_data
 
-    def write_block(self, block_address, data):
+    def write_block(self, block_number, data):
         """
         Writes data to a desired block.
-        :param block_address: block absolute address
+        :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
         :param data: data to be written
         :return status: status of the write operation (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
         """
-        cmd_data = [self.ACT_WRITE, block_address]
+        cmd_data = [self.ACT_WRITE, block_number]
         crc = self.__calculate_crc(cmd_data)
         cmd_data.append(crc[0])
         cmd_data.append(crc[1])
@@ -498,40 +536,4 @@ class RC522:
                 print("[d] Data written")
         return status
 
-    def scan_once(self):
-        """
-        Performs a single tag request.
-        It setups the reader for the communication.
-        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
-                tag_type: type of the found tag
-                        0x4400 = Mifare_UltraLight
-                        0x0400 = Mifare_One(S50)
-                        0x0200 = Mifare_One(S70)
-                        0x0800 = Mifare_Pro(X)
-                        0x4403 = Mifare_DESFire
-        """
-        (status, tag_type) = self.request_tag()
-        self.__setup_for_communication()
-        return status, tag_type
 
-    def wait_for_tag(self):
-        """
-        Performs tag requests until a new one is discovered.
-        It setups the reader for the communication.
-        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
-                tag_type: type of the found tag
-                        0x4400 = Mifare_UltraLight
-                        0x0400 = Mifare_One(S50)
-                        0x0200 = Mifare_One(S70)
-                        0x0800 = Mifare_Pro(X)
-                        0x4403 = Mifare_DESFire
-        """
-        status = self.STATUS_ERR
-        tag_type = 0
-        waiting = True
-        while waiting:
-            (status, tag_type) = self.request_tag()
-            if status == self.STATUS_OK:  # card detected
-                waiting = False
-        self.__setup_for_communication()
-        return status, tag_type
