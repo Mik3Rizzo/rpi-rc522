@@ -11,7 +11,7 @@ class RC522Manager:
     """
     DEFAULT_DEV = "/dev/spidev0.0"
     DEFAULT_SPEED = 1000000
-    DEFAULT_AUTH_METHOD = RC522.ACT_AUTH_1A  # use KEY_A
+    DEFAULT_AUTH_METHOD = RC522.ACT_AUTH_A  # use KEY_A
     DEFAULT_KEY = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
     DEFAULT_AUTH_BITS = (0xFF, 0x07, 0x80)
     DEFAULT_SECTORS_NUMBER = 16
@@ -39,7 +39,7 @@ class RC522Manager:
                 uid: UID of the found tag or None
         """
         # Request tag
-        (status, tag_type) = self.rfid_reader.request()
+        (status, tag_type) = self.rfid_reader.request_tag()
         if status == self.rfid_reader.STATUS_OK:  # there is a tag
             # Perform anti-collision
             (status, uid) = self.rfid_reader.anti_collision()
@@ -97,7 +97,7 @@ class RC522Manager:
         self.key = key
 
         if self.debug:
-            print(f"[d] Set key {bytes(key).hex()}, method {'A' if auth_method == self.rfid_reader.ACT_AUTH_1A else 'B'}")
+            print(f"[d] Set key {bytes(key).hex()}, method {'A' if auth_method == self.rfid_reader.ACT_AUTH_A else 'B'}")
 
     def reset_auth_info(self):
         """

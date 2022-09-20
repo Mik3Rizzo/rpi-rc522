@@ -14,7 +14,7 @@ while True:
     # Wait for tag
     rc522.wait_for_tag()
     # Request tag
-    (error, data) = rc522.request()
+    (error, data) = rc522.request_tag()
 
     if not error:
         print("Detected tag")
@@ -27,7 +27,7 @@ while True:
             tag.select_tag(uid)
 
             # Save authorization info (key B). It doesn't call RC522.auth(), that's called when needed
-            tag.set_auth_info(rc522.ACT_AUTH_1A, key)
+            tag.set_auth_info(rc522.ACT_AUTH_A, key)
 
             # Read block 4, RC522.card_auth() will be called now
             block_data = tag.read_block(4)
