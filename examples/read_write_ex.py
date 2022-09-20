@@ -27,7 +27,7 @@ while True:
             tag.select_tag(uid)
 
             # Save authorization info (key B). It doesn't call RC522.card_auth(), that's called when needed
-            tag.set_auth(reader.AUTH_B, key)
+            tag.set_auth_info(reader.AUTH_B, key)
 
             # Read block 4, RC522.card_auth() will be called now
             block_data = tag.read_block(4)
@@ -42,6 +42,6 @@ while True:
             print(dump_data)
 
             # We must stop crypto
-            tag.reset_auth()
+            tag.reset_auth_info()
 
             time.sleep(1)

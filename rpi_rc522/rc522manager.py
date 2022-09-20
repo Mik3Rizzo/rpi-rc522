@@ -71,7 +71,7 @@ class RC522Manager:
                         2 = ERROR
         """
         if self.uid is not None:
-            self.reset_auth()
+            self.reset_auth_info()
 
         status = self.rfid_reader.select_tag(uid)
         if status == self.rfid_reader.STATUS_OK:
@@ -81,13 +81,13 @@ class RC522Manager:
             print(f"[d] Selected UID {bytes(uid).hex()}")
         return status
 
-    def is_auth_set(self) -> bool:
+    def is_auth_info_set(self) -> bool:
         """
         :return: True if the authentication info are set.
         """
         return (self.uid is not None) and (self.key is not None) and (self.auth_method is not None)
 
-    def set_auth(self, auth_method: int = DEFAULT_AUTH_METHOD, key: list[int] or bytes = DEFAULT_KEY):
+    def set_auth_info(self, auth_method: int = DEFAULT_AUTH_METHOD, key: list[int] or bytes = DEFAULT_KEY):
         """
         Sets the authentication info for the current tag.
         :param auth_method: KEY_A (0x60) or KEY_B (0x61)
@@ -99,7 +99,7 @@ class RC522Manager:
         if self.debug:
             print(f"[d] Set key {bytes(key).hex()}, method {'A' if auth_method == self.rfid_reader.ACT_AUTH_1A else 'B'}")
 
-    def reset_auth(self):
+    def reset_auth_info(self):
         """
         Resets the authentication info and de-auths the RC522.
         Calls stop_crypto() if RFID is in auth state.
@@ -116,7 +116,7 @@ class RC522Manager:
         """
         Authenticates a certain block using the saved auth info, only if needed.
         :param block_address: absolute address of the block
-        :param force: True to force the auth even is it already authed
+        :param force: True to force the auth even is it already authenticated
         :return status: 0 = OK
                         1 = NO_TAG_ERROR
                         2 = ERROR
@@ -131,7 +131,7 @@ class RC522Manager:
             status = self.rfid_reader.auth(self.auth_method, block_address, self.key, self.uid)
         else:
             if self.debug:
-                print("[d] Not calling reader.auth() - already authed")
+                print("[d] Not calling reader.auth() - already authenticated")
         return status
 
     def read_block(self, block_address: int) -> (int, Optional[bytes]):
@@ -147,7 +147,7 @@ class RC522Manager:
         data = None
         status = RC522.STATUS_ERR
 
-        if not self.is_auth_set():
+        if not self.is_auth_info_set():
             return status, data
 
         status = self.auth(block_address)
@@ -173,7 +173,7 @@ class RC522Manager:
                         1 = NO_TAG_ERROR
                         2 = ERROR
         """
-        if not self.is_auth_set():
+        if not self.is_auth_info_set():
             return RC522.STATUS_ERR
 
         status = self.auth(block_address)

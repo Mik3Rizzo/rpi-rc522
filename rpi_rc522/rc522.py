@@ -112,7 +112,7 @@ class RC522:
 
     def __init__(self, device="/dev/spidev0.0", speed=1000000, debug=False):
 
-        self.authed = False
+        self.authenticated = False
         self.debug = debug
 
         spi.openSPI(device=device, speed=speed)
@@ -320,19 +320,17 @@ class RC522:
         if not (self.__dev_read(self.REG_STATUS_2) & 0x08) != 0:
             print("   (status2reg & 0x08) != 0")
         else:
-            self.authed = True
+            self.authenticated = True
 
         return status
 
     def deauth(self):
         """
-        Calls __stop_crypto() if needed and cleanups GPIO.
+        Stops crypto and set the class attribute.
         """
-        if self.authed:
+        if self.authenticated:
             self.__stop_crypto()
-            self.authed = False
-
-        GPIO.cleanup()
+            self.authenticated = False
 
     def select_tag(self, uid):
 
