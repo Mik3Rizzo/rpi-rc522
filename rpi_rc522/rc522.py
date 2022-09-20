@@ -281,20 +281,20 @@ class RC522:
         ser_num.append(PICC_ANTICOLL)
         ser_num.append(0x20)
 
-        (status, backData, backBits) = self.__send_cmd(PCD_TRANSCEIVE, ser_num)
+        (status, back_data, back_bits) = self.__send_cmd(PCD_TRANSCEIVE, ser_num)  # back_data is the UID
 
         if status == self.MI_STATUS_OK:
             i = 0
-            if len(backData) == 5:
+            if len(back_data) == 5:
                 while i < 4:
-                    ser_num_check = ser_num_check ^ backData[i]
+                    ser_num_check = ser_num_check ^ back_data[i]
                     i = i + 1
-                if ser_num_check != backData[i]:
+                if ser_num_check != back_data[i]:
                     status = self.MI_STATUS_ERR
             else:
                 status = self.MI_STATUS_ERR
 
-        return status, backData
+        return status, bytes(back_data)
 
     def auth(self, auth_mode, block_addr, sector_key, ser_num):
 
