@@ -294,6 +294,26 @@ class RC522:
 
         return status, back_data
 
+    def select_tag(self, uid):
+
+        buf = [self.ACT_SELECT_TAG, 0x70]
+
+        i = 0
+        while i < 5:  # TODO even if the tag has 4 bytes UID, 5 bytes are considered
+            buf.append(uid[i])
+            i = i + 1
+        p_out = self.__calculate_crc(buf)
+        buf.append(p_out[0])
+        buf.append(p_out[1])
+        (status, back_data, back_len) = self.__send_cmd(self.CMD_TRANSCEIVE, buf)
+
+        if (status == self.STATUS_OK) and (back_len == 0x18):
+            if self.debug:
+                print(f"[d] back_data[0] (size): {back_data[0]}")
+            return status
+        else:
+            return self.STATUS_ERR
+
     def auth(self, auth_mode, block_addr, sector_key, ser_num):
 
         # First byte should be the authMode (A or B), the second is the trailerBlock (usually 7)
@@ -331,26 +351,6 @@ class RC522:
         if self.authenticated:
             self.__stop_crypto()
             self.authenticated = False
-
-    def select_tag(self, uid):
-
-        buf = [self.ACT_SELECT_TAG, 0x70]
-
-        i = 0
-        while i < 5:  # TODO even if the tag has 4 bytes UID, 5 bytes are considered
-            buf.append(uid[i])
-            i = i + 1
-        p_out = self.__calculate_crc(buf)
-        buf.append(p_out[0])
-        buf.append(p_out[1])
-        (status, back_data, back_len) = self.__send_cmd(self.CMD_TRANSCEIVE, buf)
-
-        if (status == self.STATUS_OK) and (back_len == 0x18):
-            if self.debug:
-                print(f"[d] back_data[0] (size): {back_data[0]}")
-            return status
-        else:
-            return self.STATUS_ERR
 
     def read_block(self, block_addr):
         """
@@ -409,4 +409,4 @@ class RC522:
             if status == self.STATUS_OK:
                 # card detected
                 waiting = False
-        self.__init()
+        # self.__init()
