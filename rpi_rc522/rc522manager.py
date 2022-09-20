@@ -45,8 +45,8 @@ class RC522Manager:
             # Perform anti-collision
             (status, uid) = self.rfid_reader.anti_collision()
             if status == self.rfid_reader.MI_STATUS_OK:
-                return status, uid
-        return status, uid
+                return status, bytes(uid)
+        return status, bytes(uid)
 
     def wait_for_tag(self):
         """
@@ -135,7 +135,7 @@ class RC522Manager:
                 print("[d] Not calling reader.auth() - already authed")
         return status
 
-    def read_block(self, block_address: int) -> (int, list[int]):
+    def read_block(self, block_address: int) -> (int, bytes):
         """
         Reads a specific block.
         Note: Tag and auth must be set, since it does auth.
@@ -149,7 +149,7 @@ class RC522Manager:
         status = RC522.MI_STATUS_ERR
 
         if not self.is_auth_set():
-            return status, data
+            return status, bytes(data)
 
         status = self.auth(block_address)
         if status == RC522.MI_STATUS_OK:
@@ -157,7 +157,7 @@ class RC522Manager:
         else:
             print(f"[e] Error reading {get_block_repr(block_address)}")
 
-        return status, data
+        return status, bytes(data)
 
     def write_block(self, block_address: int, new_bytes: list[int]) -> int:
         """
