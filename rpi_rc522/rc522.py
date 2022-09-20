@@ -7,11 +7,14 @@ import spi
 
 class RC522:
     """
-    Low level class that manages an RC522 RFID Reader (based on the MFRC522 chip), connected through SPI.
+    Low level class that manages an RC522 RFID reader, connected through SPI.
+    It is a cheap NFC reader based on the MFRC522 chip.
 
-    Note: this is based on the Arduino's .cpp RFID library.
-    Look here for further code explanation:
-    https://github.com/miguelbalboa/rfid  (MFRC522.h and MFRC522.cpp)
+    Note:
+        - this class uses GPIO in BCM mode.
+        - this class is based on the Arduino's .cpp RFID library.
+            Look here for further code explanation:
+            https://github.com/miguelbalboa/rfid  (MFRC522.h and MFRC522.cpp)
     """
 
     PIN_RST_BCM = 25  # BOARD 22
@@ -128,45 +131,76 @@ class RC522:
         spi.openSPI(device=device, speed=speed)
         GPIO.setwarnings(self.debug)
         GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.PIN_RST_BCM, GPIO.OUT)
+        GPIO.__setup(self.PIN_RST_BCM, GPIO.OUT)
         GPIO.output(self.PIN_RST_BCM, 1)
 
-        self.__init()
+        self.__setup()
 
-    def __init(self):
-
+    def __setup(self):
+        """
+        Setups the MFRC522 chip for the connection with the tag.
+        Resets the timer and enables the antenna.
+        """
+        # High output on the reset pin
         GPIO.output(self.PIN_RST_BCM, 1)
 
+        # Soft reset
         self.__reset()
-
         # Timer: TPrescaler*TreloadVal/6.78MHz = 24ms, f(Timer) = 6.78MHz/TPreScale
-        self.__dev_write(self.REG_TIMER_MODE, 0x8D)         # Tauto=1, timer starts automatically at the end of the transmission in all communication modes at all speeds
-        self.__dev_write(self.REG_TIMER_PRESCALER, 0x3E)    # TModeReg[3..0] + TPrescalerReg
-        self.__dev_write(self.REG_TIMER_RELOAD_H, 0x00)     # reload timer with 0x0030,  i.e. 48ms before timeout
+        # Tauto=1, timer starts automatically at the end of the transmission in all communication modes at all speeds
+        self.__dev_write(self.REG_TIMER_MODE, 0x8D)
+        # TModeReg[3..0] + TPrescalerReg
+        self.__dev_write(self.REG_TIMER_PRESCALER, 0x3E)
+        # Reload timer with 0x0030,  i.e. 48ms before timeout
+        self.__dev_write(self.REG_TIMER_RELOAD_H, 0x00)
         self.__dev_write(self.REG_TIMER_RELOAD_L, 0x30)
+        # REG_TX_AUTO is 0x00 by default. Force a 100 % ASK modulation independent of the ModGsPReg register setting
+        self.__dev_write(self.REG_TX_AUTO, 0x40)
+        # REG_MODE is 0x3F by default. Set the preset value for the CRC coprocessor to 0x6363 (ISO 14443-3 part 6.2.4)
+        self.__dev_write(self.REG_MODE, 0x3D)
+        # Re-enable the antenna driver pins, disabled by __reset()
+        self.__set_antenna_on()
 
-        self.__dev_write(self.REG_TX_AUTO, 0x40)            # Default 0x00. Force a 100 % ASK modulation independent of the ModGsPReg register setting
-        self.__dev_write(self.REG_MODE, 0x3D)               # Default 0x3F. Set the preset value for the CRC coprocessor for the CalcCRC command to 0x6363 (ISO 14443-3 part 6.2.4)
-
-        self.__set_antenna_on()                             # re-enable the antenna driver pins, disabled by __reset
+    def __reset(self):
+        """
+        Commands a soft reset to the MFRC522 chip.
+        """
+        self.__dev_write(self.REG_COMMAND, self.CMD_SOFT_RESET)
 
     @staticmethod
     def __dev_write(register, value):
+        """
+        Writes a certain value on the desired register of the MFRC522 chip.
+        :param register: register address
+        :param value: value to be written
+        """
         spi.transfer(((register << 1) & 0x7E, value))
 
     @staticmethod
     def __dev_read(register):
+        """
+        Reads the given register of the MFRC522 chip.
+        :param register: register address
+        :return: rad value
+        """
         val = spi.transfer((((register << 1) & 0x7E) | 0x80, 0))
         return val[1]
 
-    def __reset(self):
-        self.__dev_write(self.REG_COMMAND, self.CMD_SOFT_RESET)
-
     def __set_bitmask(self, register, mask):
+        """
+        Rewrites a register with the bitmasked version of the previous content.
+        :param register: register address
+        :param mask: bitmask
+        """
         tmp = self.__dev_read(register)
         self.__dev_write(register, tmp | mask)
 
     def __clear_bitmask(self, register, mask):
+        """
+        Reverts a bitmask operation on a register.
+        :param register: register address
+        :param mask: bitmask
+        """
         tmp = self.__dev_read(register)
         self.__dev_write(register, tmp & (~mask))
 
@@ -186,6 +220,9 @@ class RC522:
         self.__clear_bitmask(self.REG_TX_CONTROL, 0x03)
 
     def __stop_crypto(self):
+        """
+        Stops Crypto1.
+        """
         self.__clear_bitmask(self.REG_STATUS_2, 0x08)
 
     def __send_cmd(self, command, command_data):
@@ -193,15 +230,12 @@ class RC522:
         Sends a command to a tag.
         :param command: command to the MFRC522 chip, needed to send a command to the tag
         :param command_data: data that is needed to complete the command
-        :return status: status of the calculation
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
-                result: result data returned by the tag
-                result_len_bits: number of valid bits in the resulting value
+        :return status: status of the calculation (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
+                back_data: data returned by the tag
+                bits_len: number of valid bits in the back_data
         """
-        result = []
-        result_bits_len = 0
+        back_data = []
+        bits_len = 0
         status = self.STATUS_ERR
         irq_en = 0x00
         wait_irq = 0x00
@@ -221,28 +255,27 @@ class RC522:
         self.__dev_write(self.REG_COMMAND, self.CMD_IDLE)       # no action, cancel the current command
 
         for i in range(len(command_data)):
-            self.__dev_write(self.REG_FIFO_DATA, command_data[i])
+            self.__dev_write(self.REG_FIFO_DATA, command_data[i])   # write command_data in the tag's register
 
-        self.__dev_write(self.REG_COMMAND, command)
+        self.__dev_write(self.REG_COMMAND, command)                 # write the command in the tag's register
 
         if command == self.CMD_TRANSCEIVE:
-            self.__set_bitmask(self.REG_BIT_FRAMING, 0x80)      # StartSend=1, transmission of data starts
+            self.__set_bitmask(self.REG_BIT_FRAMING, 0x80)          # StartSend=1, transmission of data starts
 
-        # Waiting for the command to complete, so we can receive data
-        ms_timeout = 25  # 25 ms
+        # Waiting for the command to complete, setting a 25 ms max timeout
+        timeout_ms = 25
         stop = False
         while not stop:
             n = self.__dev_read(self.REG_COMM_IRQ)
-            # CommIRqReg[7..0]
-            # Set1 TxIRq RxIRq IdleIRq HiAlerIRq LoAlertIRq ErrIRq TimerIRq
-            ms_timeout -= 1
-            if ~((ms_timeout != 0) and ~(n & 0x01) and ~(n & wait_irq)):
+            # CommIRqReg[7..0] = [Set1 TxIRq RxIRq IdleIRq HiAlerIRq LoAlertIRq ErrIRq TimerIRq]
+            timeout_ms -= 1
+            if ~((timeout_ms != 0) and ~(n & 0x01) and ~(n & wait_irq)):
                 stop = True
-            time.sleep(0.01)  # wait 1ms
+            time.sleep(0.001)  # wait 1 ms
 
         self.__clear_bitmask(self.REG_BIT_FRAMING, 0x80)            # StartSend=0
 
-        if ms_timeout != 0:  # request did not time out
+        if timeout_ms != 0:  # request did not time out
             if (self.__dev_read(self.REG_ERROR) & 0x1B) == 0x00:    # BufferOvfl Collerr CRCErr ProtocolErr
                 status = self.STATUS_OK
 
@@ -253,9 +286,9 @@ class RC522:
                     n = self.__dev_read(self.REG_FIFO_LEVEL)
                     last_bits = self.__dev_read(self.REG_CONTROL) & 0x07
                     if last_bits != 0:
-                        result_bits_len = (n - 1) * 8 + last_bits
+                        bits_len = (n - 1) * 8 + last_bits
                     else:
-                        result_bits_len = n * 8
+                        bits_len = n * 8
 
                     if n == 0:
                         n = 1
@@ -264,11 +297,11 @@ class RC522:
 
                     # Reading the received data from FIFO
                     for i in range(n):
-                        result.append(self.__dev_read(self.REG_FIFO_DATA))
+                        back_data.append(self.__dev_read(self.REG_FIFO_DATA))
             else:
                 status = self.STATUS_ERR
 
-        return status, result, result_bits_len
+        return status, back_data, bits_len
 
     def __calculate_crc(self, data):
         """
@@ -284,13 +317,16 @@ class RC522:
 
         self.__dev_write(self.REG_COMMAND, self.CMD_CALC_CRC)
 
-        i = 0xFF
+        # Wait for the CRC calculation to complete, setting a 25 ms max timeout
+        timeout_ms = 25
         stop = False
         while not stop:
             n = self.__dev_read(self.REG_DIV_IRQ)
-            i = i - 1
-            if not ((i != 0) and not (n & 0x04)):  # CRCIrq = 1
+            timeout_ms -= 1
+            if not ((timeout_ms != 0) and not (n & 0x04)):  # CRCIrq = 1
                 stop = True
+            time.sleep(0.001)  # wait 1 ms
+
         # Read the result from the CRC calculation
         result = [self.__dev_read(self.REG_CRC_RESULT_L), self.__dev_read(self.REG_CRC_RESULT_M)]
         return result
@@ -299,10 +335,7 @@ class RC522:
         """
         Checks to see if there is a tag in the vicinity.
         :param req_mode: mode of the request
-        :return status: status of the request
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: status of the request (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
                 tag_type: if we find a tag, this will be the type of that tag
                         0x4400 = Mifare_UltraLight
                         0x0400 = Mifare_One(S50)
@@ -323,14 +356,7 @@ class RC522:
     def anti_collision(self):
         """
         Handles collisions that might occur if there are multiple tags available.
-        :return status: status of the request
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
-        :return status: status of the collision detection
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: status of the collision detection (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
         uid_checksum = 0
@@ -359,10 +385,7 @@ class RC522:
         """
         Selects a given tag.
         :param uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
-        :return status: status of the tag selection
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: status of the tag selection (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
         """
 
         cmd_data = [self.ACT_SELECT_TAG, 0x70]
@@ -374,41 +397,36 @@ class RC522:
         cmd_data.append(crc[0])
         cmd_data.append(crc[1])
 
-        (status, res, res_bits_len) = self.__send_cmd(self.CMD_TRANSCEIVE, cmd_data)
+        (status, result_data, bits_len) = self.__send_cmd(self.CMD_TRANSCEIVE, cmd_data)
 
-        if (status == self.STATUS_OK) and (res_bits_len == 0x18):  # 0x18 = 24 bits
+        if (status == self.STATUS_OK) and (bits_len == 0x18):  # 0x18 = 24 bits
             if self.debug:
-                print(f"[d] res[0] (size): {res[0]}")
+                print(f"[d] result_data[0] (size): {result_data[0]}")
             return status
         else:
             return self.STATUS_ERR
 
     def auth(self, auth_mode, block_address, key, uid):
         """
-        Performs the authentication for a given block.
+        Performs the authentication for a given block and sets the authenticated class attribute to true.
         :param auth_mode: 0x60 (AUTH_A) or 0x61 (AUTH_B)
         :param block_address: block absolute address
         :param key: key for the authentication
         :param uid: UID of the tag, truncated if > 4 bytes
-        :return status: status of the authentication
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: status of the authentication (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
         """
+        # cmd_data = auth_mode (1 byte) | block_address | key (6 bytes) | UID (4 bytes)
         cmd_data = [auth_mode, block_address]
 
-        # Append the key, which usually is 6 bytes of 0xFF
         for i in range(len(key)):
             cmd_data.append(key[i])
 
-        # Append the first 4 bytes of the UID
         for i in range(4):
             cmd_data.append(uid[i])
 
         # Start the authentication itself
         (status, result, bits_len) = self.__send_cmd(self.CMD_AUTHENTICATE, cmd_data)
 
-        # Check if an error occurred
         if not (status == self.STATUS_OK):
             print("[e] Authentication error")
         if not (self.__dev_read(self.REG_STATUS_2) & 0x08) != 0:
@@ -420,25 +438,17 @@ class RC522:
 
     def deauth(self):
         """
-        Stops crypto and set the class attribute.
+        Stops crypto and sets the authenticated class attribute to False.
         """
         if self.authenticated:
             self.__stop_crypto()
             self.authenticated = False
 
-    # TODO continue refactoring from here
-    # - renaming
-    # - fix request_tag return
-    # - huge commenting (looking arduino lib)
-
     def read_block(self, block_address):
         """
         Reads a desired block.
         :param block_address: block absolute address
-        :return status: status of the read operation
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: status of the read operation (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
                 read_data: read data
         """
         cmd_data = [self.ACT_READ, block_address]
@@ -457,12 +467,8 @@ class RC522:
         Writes data to a desired block.
         :param block_address: block absolute address
         :param data: data to be written
-        :return status: status of the write operation
-                        0 = OK
-                        1 = NO_TAG_ERROR
-                        2 = ERROR
+        :return status: status of the write operation (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
         """
-
         cmd_data = [self.ACT_WRITE, block_address]
         crc = self.__calculate_crc(cmd_data)
         cmd_data.append(crc[0])
@@ -494,12 +500,12 @@ class RC522:
         return status
 
     def wait_for_tag(self):
-        # Scan for tags
+        """
+        Performs tag requests until a new one is discovered.
+        """
         waiting = True
         while waiting:
             (status, tag_type) = self.request_tag()
-            # If a card is found
-            if status == self.STATUS_OK:
-                # card detected
+            if status == self.STATUS_OK:  # card detected
                 waiting = False
-        self.__init()
+        self.__setup()
