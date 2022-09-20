@@ -294,7 +294,7 @@ class RC522:
             else:
                 status = self.MI_STATUS_ERR
 
-        return status, bytes(back_data)
+        return status, back_data
 
     def auth(self, auth_mode, block_addr, sector_key, ser_num):
 
