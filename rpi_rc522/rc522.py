@@ -312,6 +312,9 @@ class RC522:
             else:
                 status = self.STATUS_ERR
 
+        if self.debug:
+            print(f"[d] RC522.__send_cmd() >>> status = {status}, cmd = {command}")
+
         return status, back_data, bits_len
 
     def __calculate_crc(self, data):
