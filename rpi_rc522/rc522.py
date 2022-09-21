@@ -145,9 +145,9 @@ class RC522:
         GPIO.setup(self.PIN_RST_BCM, GPIO.OUT)
         GPIO.output(self.PIN_RST_BCM, 1)
 
-        self.__setup_for_communication()
+        self.__setup()
 
-    def __setup_for_communication(self):
+    def __setup(self):
         """
         Setups the MFRC522 chip for the communication with a tag.
         Resets the timer and enables the antenna.
@@ -236,7 +236,7 @@ class RC522:
         """
         self.__clear_bitmask(self.REG_STATUS_2, 0x08)
 
-    def __send_cmd(self, command, command_data):
+    def __send_cmd(self, command, command_data) -> (int, list[int] | None, int):
         """
         Sends a command to a tag.
         :param command: command to the MFRC522 chip, needed to send a command to the tag
@@ -314,7 +314,7 @@ class RC522:
 
         return status, back_data, bits_len
 
-    def __calculate_crc(self, data):
+    def __calculate_crc(self, data) -> list[int]:
         """
         Calculates the CRC value for some data that should be sent to a tag.
         :param data: data to calculate the CRC for
@@ -342,9 +342,9 @@ class RC522:
         result = [self.__dev_read(self.REG_CRC_RESULT_L), self.__dev_read(self.REG_CRC_RESULT_M)]
         return result
 
-    def _request_tag(self, req_mode=0x26):
+    def request_tag(self, req_mode=0x26) -> (int, list[int] | None):
         """
-        Checks to see if there is a tag in the vicinity.
+        Checks (once) to see if there is a tag in the vicinity.
         :param req_mode: mode of the request
         :return status: status of the request (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
                 tag_type: type of the tag, if one is found
@@ -362,29 +362,12 @@ class RC522:
         if (status != self.STATUS_OK) | (bits_len != 0x10):  # tag_type has to be 0x10 = 16 bits (2 bytes) length
             status = self.STATUS_ERR
 
-        return status, tag_type
-
-    def request_tag_once(self):
-        """
-        Performs a single tag request.
-        It setups the reader for the communication.
-        :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
-                tag_type: type of the found tag
-                        0x4400 = Mifare_UltraLight
-                        0x0400 = Mifare_One(S50)
-                        0x0200 = Mifare_One(S70)
-                        0x0800 = Mifare_Pro(X)
-                        0x4403 = Mifare_DESFire
-        """
-        (status, tag_type) = self._request_tag()
-        self.__setup_for_communication()
-
         if self.debug:
-            print(f"[d] RC522.request_tag_once() >>> status = {status}, tag_type = {tag_type}")
+            print(f"[d] RC522.request_tag() >>> status = {status}, tag_type = {tag_type}")
 
         return status, tag_type
 
-    def wait_for_tag(self):
+    def wait_for_tag(self) -> (int, list[int] | None):
         """
         Performs tag requests until a new one is discovered.
         It setups the reader for the communication.
@@ -400,17 +383,16 @@ class RC522:
         tag_type = 0
 
         while status != self.STATUS_OK:
-            (status, tag_type) = self._request_tag()
-        self.__setup_for_communication()
+            (status, tag_type) = self.request_tag()
 
         if self.debug:
             print(f"[d] RC522.wait_for_tag() >>> status = {status}, tag_type = {tag_type}")
 
         return status, tag_type
 
-    def anti_collision(self):
+    def anti_collision(self) -> (int, list[int] | None):
         """
-        Handles collisions that might occur if there are multiple tags available.
+        Performs the collision detection to avoid collisions that might occur if there are multiple tags available.
         :return status: status of the collision detection (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
@@ -439,7 +421,7 @@ class RC522:
 
         return status, uid_data
 
-    def select_tag(self, uid_data):
+    def select_tag(self, uid_data) -> int:
         """
         Selects a given tag.
         :param uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
@@ -465,7 +447,7 @@ class RC522:
 
         return status
 
-    def auth(self, auth_method, block_number, key, uid):
+    def auth(self, auth_method, block_number, key, uid) -> int:
         """
         Performs the authentication for a given block and sets the authenticated class attribute to True.
         :param auth_method: 0x60 (AUTH_A) or 0x61 (AUTH_B)
@@ -506,7 +488,7 @@ class RC522:
             self.__stop_crypto()
             self.authenticated = False
 
-    def read_block(self, block_number):
+    def read_block(self, block_number) -> (int, list[int] | None):
         """
         Reads a desired block.
         :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
@@ -528,7 +510,7 @@ class RC522:
 
         return status, read_data
 
-    def write_block(self, block_number, data):
+    def write_block(self, block_number, data) -> int:
         """
         Writes data to a desired block.
         :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)

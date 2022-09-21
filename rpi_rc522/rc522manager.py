@@ -22,22 +22,19 @@ class RC522Manager:
     STATUS_ERR = RC522.STATUS_ERR
 
     # Attributes
-    reader: RC522 = None
     scanning: bool = False
 
-    uid: bytes | None = None
-    key: bytes | None = None
+    uid: list[int] | None = None
+    key: list[int] | None = None
     auth_method: int | None = None
-    last_auth_data: tuple[int | None, int | None, bytes | None, bytes | None] | None = None
-
-    debug: bool = False
+    last_auth_data: tuple[int, int, list[int], list[int]] | None = None
 
     def __init__(self, device=DEFAULT_DEV, speed=DEFAULT_SPEED, debug=False):
 
-        self.reader = RC522(device=device, speed=speed, debug=debug)
-        self.debug = debug
+        self.reader: RC522 = RC522(device=device, speed=speed, debug=debug)
+        self.debug: bool = debug
 
-    def scan(self, scan_once: bool = False) -> (int, list[int] | bytes | None):
+    def scan(self, scan_once: bool = False) -> (int, list[int]):
         """
         Scans for a tag once or until a tag appears.
         It performs anti-collision.
@@ -45,12 +42,12 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
-        uid_data = None
+        uid_data = []
         self.scanning = True
 
         if scan_once:
-            # Request tag
-            (status, tag_type) = self.reader.request_tag_once()
+            # Request tag once
+            (status, tag_type) = self.reader.request_tag()
         else:
             # Wait for the tag
             (status, tag_type) = self.reader.wait_for_tag()
@@ -66,7 +63,7 @@ class RC522Manager:
 
         return status, uid_data
 
-    def select_tag(self, uid_data: list[int] | bytes) -> int:
+    def select_tag(self, uid_data: list[int]) -> int:
         """
         Selects a tag.
         Resets the auth if the tag's UID is already set.
@@ -78,9 +75,9 @@ class RC522Manager:
 
         status = self.reader.select_tag(uid_data)
         if status == self.STATUS_OK:
-            self.uid = bytes(uid_data[0:4])
+            self.uid = uid_data[0:4]
             if self.debug:
-                print(f"[d] Selected UID {self.uid.hex()}")
+                print(f"[d] Selected UID {bytes(self.uid).hex()}")
 
         if self.debug:
             print(f"[d] RC522Manager.select_tag() >>> status = {status}")
@@ -93,17 +90,17 @@ class RC522Manager:
         """
         return (self.uid is not None) and (self.key is not None) and (self.auth_method is not None)
 
-    def set_auth(self, auth_method: int = DEFAULT_AUTH_METHOD, key: list[int] | bytes = DEFAULT_KEY):
+    def set_auth(self, auth_method: int = DEFAULT_AUTH_METHOD, key: list[int] = DEFAULT_KEY):
         """
         Sets the authentication info for the current tag.
         :param auth_method: KEY_A (0x60) or KEY_B (0x61)
         :param key: key of the tag
         """
         self.auth_method = auth_method
-        self.key = bytes(key)
+        self.key = key
 
         if self.debug:
-            print(f"[d] RC522Manager.set_auth() >>> Set key {self.key.hex()}, "
+            print(f"[d] RC522Manager.set_auth() >>> Set key {bytes(self.key).hex()}, "
                   f"method {'A' if auth_method == self.reader.ACT_AUTH_A else 'B'}")
 
     def reset_auth(self):
@@ -130,7 +127,7 @@ class RC522Manager:
 
         if (self.last_auth_data != auth_data) or force:
             if self.debug:
-                print(f"[d] Calling reader.auth() on UID {self.uid.hex()}")
+                print(f"[d] Calling reader.auth() on UID {bytes(self.uid).hex()}")
             self.last_auth_data = auth_data
             status = self.reader.auth(self.auth_method, block_number, self.key, self.uid)
         else:
@@ -142,7 +139,7 @@ class RC522Manager:
 
         return status
 
-    def read_block(self, block_number: int) -> (int, bytes | None):
+    def read_block(self, block_number: int) -> (int, list[int]):
         """
         Reads a specific block.
         Note: Tag and auth must be set, since it does auth.
@@ -151,7 +148,7 @@ class RC522Manager:
                 read_data: read data
         """
         status = self.STATUS_ERR
-        read_data = None
+        read_data = []
 
         if not self.is_auth_set():
             return status, read_data
@@ -164,9 +161,9 @@ class RC522Manager:
             print(f"[e] Error reading {get_block_repr(block_number)}")
 
         if self.debug:
-            print(f"[d] RC522Manager.read_block() >>> status = {status}, read_data = {bytes(read_data)}")
+            print(f"[d] RC522Manager.read_block() >>> status = {status}, read_data = {read_data}")
 
-        return status, bytes(read_data)
+        return status, read_data
 
     def write_block(self, block_number: int, new_bytes: list[int]) -> int:
         """
@@ -208,10 +205,10 @@ class RC522Manager:
         return status
 
     def write_trailer(self, sector_number: int,
-                      key_a: list[int] | bytes = DEFAULT_KEY,
-                      access_bits: list[int] | bytes = DEFAULT_AUTH_BITS,
+                      key_a: list[int] = DEFAULT_KEY,
+                      access_bits: list[int] = DEFAULT_AUTH_BITS,
                       user_data: int = 0x69,
-                      key_b: list[int] | bytes = DEFAULT_KEY):
+                      key_b: list[int] = DEFAULT_KEY) -> int:
         """
         Writes sector trailer (last block) of specified sector. Tag and auth must be set - does auth.
         If value is None, value of byte is kept.
@@ -226,7 +223,7 @@ class RC522Manager:
         trailer = key_a[:6] + access_bits[:3] + [user_data] + key_b[:6]
         return self.write_block(block_number, trailer)
 
-    def dump(self, sectors_number: int = DEFAULT_SECTORS_NUMBER) -> (int, list[bytes]):
+    def dump(self, sectors_number: int = DEFAULT_SECTORS_NUMBER) -> (int, list[list[int]]):
         """
         Dumps the entire tag.
         :param sectors_number: number of sectors
@@ -236,8 +233,8 @@ class RC522Manager:
         status = self.STATUS_ERR
         dump_data = []
         for i in range(sectors_number * 4):
-            (status, data) = self.read_block(i)
-            dump_data.append(data)
+            (status, block_data) = self.read_block(i)
+            dump_data.append(block_data)
 
         if self.debug:
             print(f"[d] RC522Manager.dump() >>> status = {status}, read_data = {dump_data}")
