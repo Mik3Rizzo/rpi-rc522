@@ -1,47 +1,51 @@
 #!/usr/bin/env python
-
 import time
-from rpi_rc522 import RC522, RC522Manager
+from rpi_rc522 import RC522Manager
 
-rc522 = RC522()
 
-tag = RC522Manager(rc522)
-
+reader = RC522Manager()
 key = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
 
 while True:
 
-    # Wait for tag
-    rc522.wait_for_tag()
-    # Request tag
-    (error, data) = rc522._request_tag()
+    print("Waiting for tag...")
+    (status, uid_data) = reader.scan()  # uid_data is 5 bytes: UID (4 bytes) | checksum (1 byte)
 
-    if not error:
-        print("Detected tag")
-        (error, uid) = rc522.anti_collision()
+    if status == reader.rfid_reader.STATUS_OK:
+        print(f"Found tag {uid_data[0:4]}")
+        status = reader.select_tag(uid_data)
 
-        if not error:
-            print(f"UID: {uid[0]}{uid[1]}{uid[2]}{uid[3]}")
+        if status == reader.rfid_reader.STATUS_OK:
+            print("Tag selected")
+            reader.set_auth(key=key)
+            print("Authentication info set")
 
-            # Set tag as used in util. This will call RC522.select_tag(uid)
-            tag.select_tag(uid)
+            block_number = 5
+            print(f"Reading block {block_number}")
+            (status, read_data) = reader.read_block(block_number)
 
-            # Save authorization info (key B). It doesn't call RC522.auth(), that's called when needed
-            tag.set_auth(rc522.ACT_AUTH_A, key)
+            if status == reader.rfid_reader.STATUS_OK:
+                print(f"Block {block_number}: {bytes(read_data).hex()}")
 
-            # Read block 4, RC522.card_auth() will be called now
-            block_data = tag.read_block(4)
-            print(block_data)  # list of int
-            print([hex(x) for x in block_data])  # list of hex
+            # Write only the 3rd, 4th and 5th byte of the block 4 (sector 1, block 0)
+            to_write = [None, None, 0xAB, 0xCD, 0xEF]
+            print(f"Writing {to_write} to block {block_number} ...")
+            status = reader.write_block(block_number, to_write)
 
-            # Write only the 3rd, 4th and 5th byte of the block 9 (sector 2, block 1)
-            tag.write_block(9, [None, None, 0xAB, 0xCD, 0xEF])
+            # Read the new content
+            if status == reader.rfid_reader.STATUS_OK:
+                (status, read_data) = reader.read_block(block_number)
+                if status == reader.rfid_reader.STATUS_OK:
+                    print(f"Block {block_number} new data: {bytes(read_data).hex()}")
 
-            # Let's see what do we have in whole tag
-            dump_data = tag.dump()
-            print(dump_data)
+            print("Dumping the entire tag...")
+            (status, dump_data) = reader.dump()
+            if status == reader.rfid_reader.STATUS_OK:
+                print("Entire dump:")
+                print(dump_data)
 
-            # We must stop crypto
-            tag.reset_auth()
+            # Reset authentication at the end
+            reader.reset_auth()
+            print("Authentication reset")
 
             time.sleep(1)
