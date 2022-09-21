@@ -11,14 +11,22 @@ import spi
 
 class RC522:
     """
-    Low level class that manages an RC522 RFID reader, connected through SPI.
-    It is a cheap NFC reader based on the MFRC522 chip.
+    Low level class that manages a RC522 module, connected via SPI.
+    It is a cheap RFID reader based on the MFRC522 chip.
 
     Note:
-        - this class uses GPIO in BCM mode.
-        - this class is based on the Arduino's .cpp RFID library.
+        - uses GPIO in BCM mode.
+        - based on the Arduino's .cpp RFID library.
             Look here for further code explanation:
             https://github.com/miguelbalboa/rfid  (MFRC522.h and MFRC522.cpp)
+
+    Connection:
+        - MOSI to GPIO10 (SPI_MOSI)
+        - MISO to GPIO09 (SPI_MISO)
+        - SCK  to GPIO11 (SPI_CLK)
+        - SDA  to GPIO08 (SPI_CE0_N)
+        - RST  to GPIO25
+        - 3.3v and Ground
     """
 
     PIN_RST_BCM = 25  # BOARD 22
