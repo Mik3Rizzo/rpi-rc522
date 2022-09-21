@@ -11,11 +11,11 @@ while True:
     print("Waiting for tag...")
     (status, uid_data) = reader.scan()  # uid_data is 5 bytes: UID (4 bytes) | checksum (1 byte)
 
-    if status == reader.rfid_reader.STATUS_OK:
+    if status == reader.reader.STATUS_OK:
         print(f"Found tag {uid_data[0:4]}")
         status = reader.select_tag(uid_data)
 
-        if status == reader.rfid_reader.STATUS_OK:
+        if status == reader.reader.STATUS_OK:
             print("Tag selected")
             reader.set_auth(key=key)
             print("Authentication info set")
@@ -24,7 +24,7 @@ while True:
             print(f"Reading block {block_number}")
             (status, read_data) = reader.read_block(block_number)
 
-            if status == reader.rfid_reader.STATUS_OK:
+            if status == reader.reader.STATUS_OK:
                 print(f"Block {block_number}: {bytes(read_data).hex()}")
 
             # Write only the 3rd, 4th and 5th byte of the block 4 (sector 1, block 0)
@@ -33,14 +33,14 @@ while True:
             status = reader.write_block(block_number, to_write)
 
             # Read the new content
-            if status == reader.rfid_reader.STATUS_OK:
+            if status == reader.reader.STATUS_OK:
                 (status, read_data) = reader.read_block(block_number)
-                if status == reader.rfid_reader.STATUS_OK:
+                if status == reader.reader.STATUS_OK:
                     print(f"Block {block_number} new data: {bytes(read_data).hex()}")
 
             print("Dumping the entire tag...")
             (status, dump_data) = reader.dump()
-            if status == reader.rfid_reader.STATUS_OK:
+            if status == reader.reader.STATUS_OK:
                 print("Entire dump:")
                 print(dump_data)
 

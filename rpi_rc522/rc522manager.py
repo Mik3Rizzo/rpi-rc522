@@ -16,7 +16,7 @@ class RC522Manager:
     DEFAULT_AUTH_BITS = (0xFF, 0x07, 0x80)
     DEFAULT_SECTORS_NUMBER = 16
 
-    rfid_reader: RC522 = None
+    reader: RC522 = None
     scanning: bool = False
 
     uid: bytes | None = None
@@ -28,7 +28,7 @@ class RC522Manager:
 
     def __init__(self, device=DEFAULT_DEV, speed=DEFAULT_SPEED, debug=False):
 
-        self.rfid_reader = RC522(device=device, speed=speed, debug=debug)
+        self.reader = RC522(device=device, speed=speed, debug=debug)
         self.debug = debug
 
     def scan(self, scan_once: bool = False) -> (int, list[int] | bytes | None):
@@ -44,14 +44,14 @@ class RC522Manager:
 
         if scan_once:
             # Request tag
-            (status, tag_type) = self.rfid_reader.request_tag_once()
+            (status, tag_type) = self.reader.request_tag_once()
         else:
             # Wait for the tag
-            (status, tag_type) = self.rfid_reader.wait_for_tag()
+            (status, tag_type) = self.reader.wait_for_tag()
 
-        if status == self.rfid_reader.STATUS_OK:  # there is a tag
+        if status == self.reader.STATUS_OK:  # there is a tag
             # Perform anti-collision
-            (status, uid_data) = self.rfid_reader.anti_collision()
+            (status, uid_data) = self.reader.anti_collision()
 
         self.scanning = False
         return status, uid_data
@@ -66,8 +66,8 @@ class RC522Manager:
         if self.uid is not None:
             self.reset_auth()
 
-        status = self.rfid_reader.select_tag(uid_data)
-        if status == self.rfid_reader.STATUS_OK:
+        status = self.reader.select_tag(uid_data)
+        if status == self.reader.STATUS_OK:
             self.uid = bytes(uid_data[0:4])
             if self.debug:
                 print(f"[d] Selected UID {self.uid.hex()}")
@@ -90,7 +90,7 @@ class RC522Manager:
         self.key = bytes(key)
 
         if self.debug:
-            print(f"[d] Set key {self.key.hex()}, method {'A' if auth_method == self.rfid_reader.ACT_AUTH_A else 'B'}")
+            print(f"[d] Set key {self.key.hex()}, method {'A' if auth_method == self.reader.ACT_AUTH_A else 'B'}")
 
     def reset_auth(self):
         """
@@ -99,7 +99,7 @@ class RC522Manager:
         self.auth_method = None
         self.key = None
         self.last_auth_data = None
-        self.rfid_reader.deauth()
+        self.reader.deauth()
 
         if self.debug:
             print("[d] Resetting auth info and de-authing the reader")
@@ -112,13 +112,13 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         auth_data = (block_number, self.auth_method, self.key, self.uid)
-        status = self.rfid_reader.STATUS_OK
+        status = self.reader.STATUS_OK
 
         if (self.last_auth_data != auth_data) or force:
             if self.debug:
                 print(f"[d] Calling reader.auth() on UID {self.uid.hex()}")
             self.last_auth_data = auth_data
-            status = self.rfid_reader.auth(self.auth_method, block_number, self.key, self.uid)
+            status = self.reader.auth(self.auth_method, block_number, self.key, self.uid)
         else:
             if self.debug:
                 print("[d] Not calling reader.auth() - already authenticated")
@@ -132,7 +132,7 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 read_data: read data
         """
-        status = self.rfid_reader.STATUS_ERR
+        status = self.reader.STATUS_ERR
         read_data = None
 
         if not self.is_auth_set():
@@ -140,8 +140,8 @@ class RC522Manager:
 
         # Do authentication
         status = self.auth(block_number)
-        if status == self.rfid_reader.STATUS_OK:
-            (status, read_data) = self.rfid_reader.read_block(block_number)
+        if status == self.reader.STATUS_OK:
+            (status, read_data) = self.reader.read_block(block_number)
         else:
             print(f"[e] Error reading {get_block_repr(block_number)}")
 
@@ -161,14 +161,14 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         if not self.is_auth_set():
-            return self.rfid_reader.STATUS_ERR
+            return self.reader.STATUS_ERR
 
         # Do authentication
         status = self.auth(block_number)
-        if status == self.rfid_reader.STATUS_OK:
+        if status == self.reader.STATUS_OK:
             # Read previous block
-            (status, block_data) = self.rfid_reader.read_block(block_number)
-            if status == self.rfid_reader.STATUS_OK:
+            (status, block_data) = self.reader.read_block(block_number)
+            if status == self.reader.STATUS_OK:
                 for i in range(len(new_bytes)):
                     # Overwrite block_data if the new_byte is not None
                     if new_bytes[i] is not None:
@@ -177,7 +177,7 @@ class RC522Manager:
                         block_data[i] = new_bytes[i]
 
                 # Write the new block with changed bytes (block_data)
-                status = self.rfid_reader.write_block(block_number, block_data)
+                status = self.reader.write_block(block_number, block_data)
                 if self.debug:
                     print(f"[d] Writing {bytes(block_data).hex()} to {get_block_repr(block_number)}")
         return status
@@ -208,7 +208,7 @@ class RC522Manager:
         :return: status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                  dump: dump data
         """
-        status = self.rfid_reader.STATUS_ERR
+        status = self.reader.STATUS_ERR
         dump = []
         for i in range(sectors_number * 4):
             (status, data) = self.read_block(i)
