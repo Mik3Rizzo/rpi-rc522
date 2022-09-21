@@ -394,12 +394,14 @@ class RC522:
         """
         status = self.STATUS_ERR
         tag_type = 0
-        waiting = True
-        while waiting:
+
+        while status != self.STATUS_OK:
             (status, tag_type) = self._request_tag()
-            if status == self.STATUS_OK:  # card detected
-                waiting = False
         self.__setup_for_communication()
+
+        if self.debug:
+            print(f"[d] Found tag of type {tag_type}, status = {status}")
+
         return status, tag_type
 
     def anti_collision(self):
