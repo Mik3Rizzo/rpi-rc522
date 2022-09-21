@@ -17,7 +17,7 @@ class RC522Manager:
     DEFAULT_SECTORS_NUMBER = 16
 
     rfid_reader: RC522 = None
-    waiting: bool = False
+    scanning: bool = False
 
     uid: bytes | None = None
     key: bytes | None = None
@@ -40,7 +40,7 @@ class RC522Manager:
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
         uid_data = None
-        self.waiting = True
+        self.scanning = True
 
         if scan_once:
             # Request tag
@@ -53,7 +53,7 @@ class RC522Manager:
             # Perform anti-collision
             (status, uid_data) = self.rfid_reader.anti_collision()
 
-        self.waiting = False
+        self.scanning = False
         return status, uid_data
 
     def select_tag(self, uid_data: list[int] | bytes) -> int:
