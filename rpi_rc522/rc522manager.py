@@ -16,6 +16,12 @@ class RC522Manager:
     DEFAULT_AUTH_BITS = (0xFF, 0x07, 0x80)
     DEFAULT_SECTORS_NUMBER = 16
 
+    # RC522 Status
+    STATUS_OK = RC522.STATUS_OK
+    STATUS_NO_TAG_ERR = RC522.STATUS_NO_TAG_ERR
+    STATUS_ERR = RC522.STATUS_ERR
+
+    # Attributes
     reader: RC522 = None
     scanning: bool = False
 
@@ -49,7 +55,7 @@ class RC522Manager:
             # Wait for the tag
             (status, tag_type) = self.reader.wait_for_tag()
 
-        if status == self.reader.STATUS_OK:  # there is a tag
+        if status == self.STATUS_OK:  # there is a tag
             # Perform anti-collision
             (status, uid_data) = self.reader.anti_collision()
 
@@ -67,7 +73,7 @@ class RC522Manager:
             self.reset_auth()
 
         status = self.reader.select_tag(uid_data)
-        if status == self.reader.STATUS_OK:
+        if status == self.STATUS_OK:
             self.uid = bytes(uid_data[0:4])
             if self.debug:
                 print(f"[d] Selected UID {self.uid.hex()}")
@@ -112,7 +118,7 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         auth_data = (block_number, self.auth_method, self.key, self.uid)
-        status = self.reader.STATUS_OK
+        status = self.STATUS_OK
 
         if (self.last_auth_data != auth_data) or force:
             if self.debug:
@@ -132,7 +138,7 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 read_data: read data
         """
-        status = self.reader.STATUS_ERR
+        status = self.STATUS_ERR
         read_data = None
 
         if not self.is_auth_set():
@@ -140,7 +146,7 @@ class RC522Manager:
 
         # Do authentication
         status = self.auth(block_number)
-        if status == self.reader.STATUS_OK:
+        if status == self.STATUS_OK:
             (status, read_data) = self.reader.read_block(block_number)
         else:
             print(f"[e] Error reading {get_block_repr(block_number)}")
@@ -161,14 +167,14 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         if not self.is_auth_set():
-            return self.reader.STATUS_ERR
+            return self.STATUS_ERR
 
         # Do authentication
         status = self.auth(block_number)
-        if status == self.reader.STATUS_OK:
+        if status == self.STATUS_OK:
             # Read previous block
             (status, block_data) = self.reader.read_block(block_number)
-            if status == self.reader.STATUS_OK:
+            if status == self.STATUS_OK:
                 for i in range(len(new_bytes)):
                     # Overwrite block_data if the new_byte is not None
                     if new_bytes[i] is not None:
@@ -208,7 +214,7 @@ class RC522Manager:
         :return: status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                  dump: dump data
         """
-        status = self.reader.STATUS_ERR
+        status = self.STATUS_ERR
         dump = []
         for i in range(sectors_number * 4):
             (status, data) = self.read_block(i)
