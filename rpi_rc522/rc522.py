@@ -4,6 +4,10 @@ import time
 import RPi.GPIO as GPIO
 import spi
 
+# TODO
+#  - add type linting
+#  - extract constants in a separate class?
+
 
 class RC522:
     """
@@ -535,5 +539,3 @@ class RC522:
             if status == self.STATUS_OK and self.debug:
                 print("[d] Data written")
         return status
-
-
