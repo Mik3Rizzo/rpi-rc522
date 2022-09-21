@@ -378,6 +378,10 @@ class RC522:
         """
         (status, tag_type) = self._request_tag()
         self.__setup_for_communication()
+
+        if self.debug:
+            print(f"[d] RC522.request_tag_once() >>> status = {status}, tag_type = {tag_type}")
+
         return status, tag_type
 
     def wait_for_tag(self):
@@ -400,7 +404,7 @@ class RC522:
         self.__setup_for_communication()
 
         if self.debug:
-            print(f"[d] Found tag of type {tag_type}, status = {status}")
+            print(f"[d] RC522.wait_for_tag() >>> status = {status}, tag_type = {tag_type}")
 
         return status, tag_type
 
@@ -430,6 +434,9 @@ class RC522:
             else:
                 status = self.STATUS_ERR
 
+        if self.debug:
+            print(f"[d] RC522.anti_collision() >>> status = {status}, uid_data = {uid_data}")
+
         return status, uid_data
 
     def select_tag(self, uid_data):
@@ -450,12 +457,13 @@ class RC522:
 
         (status, result_data, bits_len) = self.__send_cmd(self.CMD_TRANSCEIVE, cmd_data)
 
-        if (status == self.STATUS_OK) and (bits_len == 0x18):  # 0x18 = 24 bits
-            if self.debug:
-                print(f"[d] result_data[0] (size): {result_data[0]}")
-            return status
-        else:
-            return self.STATUS_ERR
+        if status != self.STATUS_OK or bits_len != 0x18:  # 0x18 = 24 bits
+            status = self.STATUS_ERR
+
+        if self.debug:
+            print(f"[d] RC522.select_tag() >>> status = {status}")
+
+        return status
 
     def auth(self, auth_method, block_number, key, uid):
         """
@@ -485,6 +493,9 @@ class RC522:
         else:
             self.authenticated = True
 
+        if self.debug:
+            print(f"[d] RC522.auth() >>> status = {status}")
+
         return status
 
     def deauth(self):
@@ -510,7 +521,11 @@ class RC522:
         (status, read_data, bits_len) = self.__send_cmd(self.CMD_TRANSCEIVE, cmd_data)
 
         if not (status == self.STATUS_OK):
-            print("[e] Error while reading")
+            print("[e] RC522.read_block() >>> Error while reading")
+
+        if self.debug:
+            print(f"[d] RC522.read_block() >>> status = {status}, read_data = {read_data}")
+
         return status, read_data
 
     def write_block(self, block_number, data):
@@ -527,9 +542,6 @@ class RC522:
 
         (status, back_data, bits_len) = self.__send_cmd(self.CMD_TRANSCEIVE, cmd_data)
 
-        if self.debug:
-            print(f"[d] {bits_len} (backdata & 0x0F) == 0x0A {(back_data[0] & 0x0F) == 0x0A}")
-
         if not (status == self.STATUS_OK) or not (bits_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
             status = self.STATUS_ERR
 
@@ -545,7 +557,10 @@ class RC522:
             (status, back_data, bits_len) = self.__send_cmd(self.CMD_TRANSCEIVE, cmd_data)
 
             if not (status == self.STATUS_OK) or not (bits_len == 4) or not ((back_data[0] & 0x0F) == 0x0A):
+                status = self.STATUS_ERR
                 print("[e] Error while writing")
-            if status == self.STATUS_OK and self.debug:
-                print("[d] Data written")
+
+            if self.debug:
+                print(f"[d] RC522.write_block() >>> status = {status}")
+
         return status
