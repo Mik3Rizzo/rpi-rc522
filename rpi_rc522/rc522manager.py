@@ -21,17 +21,16 @@ class RC522Manager:
     STATUS_NO_TAG_ERR = RC522.STATUS_NO_TAG_ERR
     STATUS_ERR = RC522.STATUS_ERR
 
-    # Attributes
-    scanning: bool = False
-
-    uid: list[int] | None = None
-    key: list[int] | None = None
-    auth_method: int | None = None
-    last_auth_data: tuple[int, int, list[int], list[int]] | None = None
-
     def __init__(self, device=DEFAULT_DEV, speed=DEFAULT_SPEED, debug=False):
 
         self.reader: RC522 = RC522(device=device, speed=speed, debug=debug)
+        self.scanning: bool = False
+
+        self.uid: list[int] | None = None
+        self.key: list[int] | None = None
+        self.auth_method: int | None = None
+        self.last_auth_data: tuple[int, int, list[int], list[int]] | None = None
+        
         self.debug: bool = debug
 
     def scan(self, scan_once: bool = False) -> (int, list[int]):
