@@ -135,7 +135,6 @@ class RC522:
 
     def __init__(self, device="/dev/spidev0.0", speed=1000000, debug=False):
 
-        self.authenticated = False
         self.debug = debug
 
         spi.openSPI(device=device, speed=speed)
@@ -447,7 +446,7 @@ class RC522:
 
     def auth(self, auth_method, block_number, key, uid) -> int:
         """
-        Performs the authentication for a given block and sets the authenticated attribute to True.
+        Performs the authentication for a given block.
         :param auth_method: 0x60 (AUTH_A) or 0x61 (AUTH_B)
         :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
         :param key: key for the authentication
@@ -470,8 +469,6 @@ class RC522:
             print("[e] Authentication error")
         if not (self.__dev_read(self.REG_STATUS_2) & 0x08) != 0:
             print("   (status2reg & 0x08) != 0")
-        else:
-            self.authenticated = True
 
         if self.debug:
             print(f"[d] RC522.auth(block_number={block_number}) >>> status={status}")
@@ -541,13 +538,11 @@ class RC522:
 
     def reset(self):
         """
-        Stops crypto, re-initializes the reader for a new communication and sets authenticated attribute to False.
+        Stops crypto, re-initializes the reader for a new communication.
         Note: reset() is necessary before requesting a new tag, after another one has been selected.
         """
-        if self.authenticated:
-            self.__stop_crypto()
-            self.__init()
-            self.authenticated = False
+        self.__stop_crypto()
+        self.__init()
 
-            if self.debug:
-                print("[d] RC522.reset() >>> Stop Crypto1, re-init the reader")
+        if self.debug:
+            print("[d] RC522.reset() >>> Stop Crypto1, re-init the reader")
