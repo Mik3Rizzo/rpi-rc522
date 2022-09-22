@@ -19,6 +19,7 @@ This library is a cleaned, heavy refactored and re-designed version of the ones 
 
 - Simplified structure, with re-designed handy objects and methods ready to be used
 - Cleaner code, with lots of comments and significant naming
+- More exhaustive debug logs
 - Fewer crashes and bugs
 
 

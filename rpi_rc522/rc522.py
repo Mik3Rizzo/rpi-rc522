@@ -363,14 +363,13 @@ class RC522:
             status = self.STATUS_ERR
 
         if self.debug:
-            print(f"[d] RC522.request_tag() >>> status = {status}, tag_type = {tag_type}")
+            print(f"[d] RC522.request_tag() >>> status={status}, tag_type={bytes(tag_type).hex()}")
 
         return status, tag_type
 
     def wait_for_tag(self) -> (int, list[int] | None):
         """
         Performs tag requests until a new one is discovered.
-        It setups the reader for the communication.
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 tag_type: type of the found tag
                         0x4400 = Mifare_UltraLight
@@ -386,7 +385,7 @@ class RC522:
             (status, tag_type) = self.request_tag()
 
         if self.debug:
-            print(f"[d] RC522.wait_for_tag() >>> status = {status}, tag_type = {tag_type}")
+            print(f"[d] RC522.wait_for_tag() >>> status={status}, tag_type={bytes(tag_type).hex()}")
 
         return status, tag_type
 
@@ -417,7 +416,7 @@ class RC522:
                 status = self.STATUS_ERR
 
         if self.debug:
-            print(f"[d] RC522.anti_collision() >>> status = {status}, uid_data = {uid_data}")
+            print(f"[d] RC522.anti_collision() >>> status={status}, uid_data={bytes(uid_data).hex()}")
 
         return status, uid_data
 
@@ -443,7 +442,7 @@ class RC522:
             status = self.STATUS_ERR
 
         if self.debug:
-            print(f"[d] RC522.select_tag() >>> status = {status}")
+            print(f"[d] RC522.select_tag(uid_data={bytes(uid_data).hex()}) >>> status={status}")
 
         return status
 
@@ -476,7 +475,7 @@ class RC522:
             self.authenticated = True
 
         if self.debug:
-            print(f"[d] RC522.auth() >>> status = {status}")
+            print(f"[d] RC522.auth(block_number={block_number}) >>> status={status}")
 
         return status
 
@@ -487,6 +486,9 @@ class RC522:
         if self.authenticated:
             self.__stop_crypto()
             self.authenticated = False
+
+            if self.debug:
+                print("[d] RC522.deauth() >>> Stop Crypto1")
 
     def read_block(self, block_number) -> (int, list[int] | None):
         """
@@ -506,7 +508,7 @@ class RC522:
             print("[e] RC522.read_block() >>> Error while reading")
 
         if self.debug:
-            print(f"[d] RC522.read_block() >>> status = {status}, read_data = {read_data}")
+            print(f"[d] RC522.read_block(block_number={block_number}) >>> status={status}, read_data={bytes(read_data).hex()}")
 
         return status, read_data
 
@@ -543,6 +545,6 @@ class RC522:
                 print("[e] Error while writing")
 
             if self.debug:
-                print(f"[d] RC522.write_block() >>> status = {status}")
+                print(f"[d] RC522.write_block(block_number={block_number}) >>> status={status}")
 
         return status

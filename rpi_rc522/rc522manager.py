@@ -58,28 +58,29 @@ class RC522Manager:
         self.scanning = False
 
         if self.debug:
-            print(f"[d] RC522Manager.scan(scan_once={scan_once}) >>> status = {status}, uid_data = {uid_data}")
+            print(f"[d] RC522Manager.scan(scan_once={scan_once}) >>> status={status}, uid_data={bytes(uid_data).hex()}")
 
         return status, uid_data
 
     def select_tag(self, uid_data: list[int]) -> int:
         """
         Selects a tag.
-        Resets the auth if the tag's UID is already set.
+        Resets the auth if the another UID is already set.
         :param uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
-        if self.uid is not None:
+        uid = uid_data[0:4]
+        if self.uid != uid:
             self.reset_auth()
 
         status = self.reader.select_tag(uid_data)
         if status == self.STATUS_OK:
             self.uid = uid_data[0:4]
             if self.debug:
-                print(f"[d] Selected UID {bytes(self.uid).hex()}")
+                print(f"[d] RC522Manager: Selected UID {bytes(self.uid).hex()}")
 
         if self.debug:
-            print(f"[d] RC522Manager.select_tag() >>> status = {status}")
+            print(f"[d] RC522Manager.select_tag(uid_dat={bytes(uid_data).hex()}) >>> status={status}")
 
         return status
 
@@ -126,15 +127,15 @@ class RC522Manager:
 
         if (self.last_auth_data != auth_data) or force:
             if self.debug:
-                print(f"[d] Calling reader.auth() on UID {bytes(self.uid).hex()}")
+                print(f"[d] RC522Manager: calling reader.auth() on UID {bytes(self.uid).hex()}")
             self.last_auth_data = auth_data
             status = self.reader.auth(self.auth_method, block_number, self.key, self.uid)
         else:
             if self.debug:
-                print("[d] Not calling reader.auth() - already authenticated")
+                print("[d] RC522Manager: not calling reader.auth() - already authenticated")
 
         if self.debug:
-            print(f"[d] RC522Manager.auth() >>> status = {status}")
+            print(f"[d] RC522Manager.auth() >>> status={status}")
 
         return status
 
@@ -158,9 +159,6 @@ class RC522Manager:
             (status, read_data) = self.reader.read_block(block_number)
         else:
             print(f"[e] Error reading {get_block_repr(block_number)}")
-
-        if self.debug:
-            print(f"[d] RC522Manager.read_block() >>> status = {status}, read_data = {read_data}")
 
         return status, read_data
 
@@ -198,9 +196,6 @@ class RC522Manager:
                 if self.debug:
                     print(f"[d] Writing {bytes(block_data).hex()} to {get_block_repr(block_number)}")
 
-        if self.debug:
-            print(f"[d] RC522Manager.write_block() >>> status = {status}")
-
         return status
 
     def write_trailer(self, sector_number: int,
@@ -236,6 +231,6 @@ class RC522Manager:
             dump_data.append(block_data)
 
         if self.debug:
-            print(f"[d] RC522Manager.dump() >>> status = {status}, read_data = {dump_data}")
+            print(f"[d] RC522Manager.dump() >>> status={status}, dump_data={dump_data}")
 
         return status, dump_data
