@@ -40,8 +40,10 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
-        self.reader.restart_crypto()
+        if self.debug:
+            print(f"[d] >>> RC522Manager.scan(scan_once={scan_once}) ...")
 
+        self.reader.restart_crypto()
         uid_data = []
 
         if scan_once:
@@ -55,9 +57,6 @@ class RC522Manager:
             # Perform anti-collision
             (status, uid_data) = self.reader.anti_collision()
 
-        if self.debug:
-            print(f"[d] RC522Manager.scan(scan_once={scan_once}) >>> status={status}, uid_data={bytes(uid_data).hex()}")
-
         return status, uid_data
 
     def select_tag(self, uid_data: list[int]) -> int:
@@ -67,6 +66,9 @@ class RC522Manager:
         :param uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
+        if self.debug:
+            print(f"[d] >>> RC522Manager.select_tag(uid_data={bytes(uid_data).hex()}) ...")
+
         uid = uid_data[0:4]
         if self.uid != uid:
             self.reset_auth()
@@ -76,9 +78,6 @@ class RC522Manager:
             self.uid = uid_data[0:4]
             if self.debug:
                 print(f"[d] RC522Manager: Selected UID {bytes(self.uid).hex()}")
-
-        if self.debug:
-            print(f"[d] RC522Manager.select_tag(uid_data={bytes(uid_data).hex()}) >>> status={status}")
 
         return status
 
@@ -119,6 +118,9 @@ class RC522Manager:
         :param force: True to force the auth even it is already authenticated
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
+        if self.debug:
+            print(f"[d] >>> RC522Manager.auth(block_number={block_number}, force={force}) ...")
+
         auth_data = (block_number, self.auth_method, self.key, self.uid)
         status = self.STATUS_OK
 
@@ -130,9 +132,6 @@ class RC522Manager:
         else:
             if self.debug:
                 print("[d] RC522Manager: not calling reader.auth() - already authenticated")
-
-        if self.debug:
-            print(f"[d] RC522Manager.auth() >>> status={status}")
 
         return status
 
