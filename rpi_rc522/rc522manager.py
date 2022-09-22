@@ -67,7 +67,7 @@ class RC522Manager:
         """
         uid = uid_data[0:4]
         if self.uid != uid:
-            self.reset()
+            self.reset_auth()
 
         status = self.reader.select_tag(uid_data)
         if status == self.STATUS_OK:
@@ -98,6 +98,17 @@ class RC522Manager:
         if self.debug:
             print(f"[d] RC522Manager.set_auth() >>> Set key {bytes(self.key).hex()}, "
                   f"method {'A' if auth_method == self.reader.ACT_AUTH_A else 'B'}")
+
+    def reset_auth(self):
+        """
+        Resets the authentication info.
+        """
+        self.auth_method = None
+        self.key = None
+        self.last_auth_data = None
+
+        if self.debug:
+            print("[d] RC522Manager.reset_auth() >>> Reset auth info")
 
     def auth(self, block_number: int, force: bool = False) -> int:
         """
@@ -221,12 +232,9 @@ class RC522Manager:
 
     def reset(self):
         """
-        Resets the authentication info and resets the RC522 reader for a new communication.
+        Soft resets the reader.
         """
-        self.auth_method = None
-        self.key = None
-        self.last_auth_data = None
         self.reader.reset()
 
         if self.debug:
-            print("[d] RC522Manager.reset() >>> Reset auth info and reset the reader")
+            print("[d] RC522Manager.reset() >>> Soft reset for the reader")
