@@ -35,11 +35,13 @@ class RC522Manager:
     def scan(self, scan_once: bool = False) -> (int, list[int]):
         """
         Scans for a tag once or until a tag appears.
-        It performs anti-collision.
+        It restarts Crypto1 and performs anti-collision.
         :param scan_once: True to scan one time, False to scan until a tag appears
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
+        self.reader.restart_crypto()
+
         uid_data = []
 
         if scan_once:
@@ -80,12 +82,6 @@ class RC522Manager:
 
         return status
 
-    def is_auth_set(self) -> bool:
-        """
-        :return: True if the authentication info are set.
-        """
-        return (self.uid is not None) and (self.key is not None) and (self.auth_method is not None)
-
     def set_auth(self, auth_method: int = DEFAULT_AUTH_METHOD, key: list[int] = DEFAULT_KEY):
         """
         Sets the authentication info for the current tag.
@@ -109,6 +105,12 @@ class RC522Manager:
 
         if self.debug:
             print("[d] RC522Manager.reset_auth() >>> Reset auth info")
+
+    def is_auth_set(self) -> bool:
+        """
+        :return: True if the authentication info are set.
+        """
+        return (self.uid is not None) and (self.key is not None) and (self.auth_method is not None)
 
     def auth(self, block_number: int, force: bool = False) -> int:
         """
@@ -229,12 +231,3 @@ class RC522Manager:
             print(f"[d] RC522Manager.dump() >>> status={status}, dump_data={dump_data}")
 
         return status, dump_data
-
-    def reset(self):
-        """
-        Soft resets the reader.
-        """
-        self.reader.reset()
-
-        if self.debug:
-            print("[d] RC522Manager.reset() >>> Soft reset for the reader")

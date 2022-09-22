@@ -148,7 +148,7 @@ class RC522:
     def __init(self):
         """
         Setups the MFRC522 chip for the communication with a tag.
-        Resets the timer and enables the antenna.
+        It performs a soft reset, resets the timer and enables the antenna.
         """
         # High output on the reset pin
         GPIO.output(self.PIN_RST_BCM, 1)
@@ -536,13 +536,13 @@ class RC522:
 
         return status
 
-    def reset(self):
+    def restart_crypto(self):
         """
-        Stops crypto, re-initializes the reader for a new communication.
-        Note: reset() is necessary before requesting a new tag, after another one has been selected.
+        Restarts Crypto1 and re-initializes the reader (with a soft reset) for a new communication.
+        Note: restart_crypto() is necessary before requesting a new tag, after another one has been selected.
         """
         self.__stop_crypto()
         self.__init()
 
         if self.debug:
-            print("[d] RC522.reset() >>> Stop Crypto1, re-init the reader")
+            print("[d] RC522.restart_crypto() >>> Restart Crypto1, re-init the reader (soft reset)")
