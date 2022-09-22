@@ -50,8 +50,8 @@ while True:
                 print("Entire dump:")
                 print(dump_data)
 
-            print("4 >>> reset_auth() --- Always call it before a new scan()")
-            reader.reset_auth()
+            print("4 >>> reset() --- Always call it before a new scan()")
+            reader.reset()
             print("Authentication reset")
 
             time.sleep(1)
