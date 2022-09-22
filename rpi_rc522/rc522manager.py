@@ -80,7 +80,7 @@ class RC522Manager:
                 print(f"[d] RC522Manager: Selected UID {bytes(self.uid).hex()}")
 
         if self.debug:
-            print(f"[d] RC522Manager.select_tag(uid_dat={bytes(uid_data).hex()}) >>> status={status}")
+            print(f"[d] RC522Manager.select_tag(uid_data={bytes(uid_data).hex()}) >>> status={status}")
 
         return status
 
