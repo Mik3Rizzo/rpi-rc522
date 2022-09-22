@@ -24,7 +24,6 @@ class RC522Manager:
     def __init__(self, device=DEFAULT_DEV, speed=DEFAULT_SPEED, debug=False):
 
         self.reader: RC522 = RC522(device=device, speed=speed, debug=debug)
-        self.scanning: bool = False
 
         self.uid: list[int] | None = None
         self.key: list[int] | None = None
@@ -42,7 +41,6 @@ class RC522Manager:
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
         uid_data = []
-        self.scanning = True
 
         if scan_once:
             # Request tag once
@@ -54,8 +52,6 @@ class RC522Manager:
         if status == self.STATUS_OK:  # there is a tag
             # Perform anti-collision
             (status, uid_data) = self.reader.anti_collision()
-
-        self.scanning = False
 
         if self.debug:
             print(f"[d] RC522Manager.scan(scan_once={scan_once}) >>> status={status}, uid_data={bytes(uid_data).hex()}")
@@ -105,12 +101,12 @@ class RC522Manager:
 
     def reset_auth(self):
         """
-        Resets the authentication info and de-auths the RC522 reader.
+        Resets the authentication info and resets the RC522 reader for a new communication.
         """
         self.auth_method = None
         self.key = None
         self.last_auth_data = None
-        self.reader.deauth()
+        self.reader.reset()
 
         if self.debug:
             print("[d] RC522Manager.reset_auth() >>> Reset auth info and reader de-authed")

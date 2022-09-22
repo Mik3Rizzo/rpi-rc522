@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import time
-
 import RPi.GPIO as GPIO
 import spi
 
@@ -145,9 +144,9 @@ class RC522:
         GPIO.setup(self.PIN_RST_BCM, GPIO.OUT)
         GPIO.output(self.PIN_RST_BCM, 1)
 
-        self.__setup()
+        self.__init()
 
-    def __setup(self):
+    def __init(self):
         """
         Setups the MFRC522 chip for the communication with a tag.
         Resets the timer and enables the antenna.
@@ -156,7 +155,7 @@ class RC522:
         GPIO.output(self.PIN_RST_BCM, 1)
 
         # Soft reset
-        self.__reset()
+        self.__soft_reset()
         # Timer: TPrescaler*TreloadVal/6.78MHz = 24ms, f(Timer) = 6.78MHz/TPreScale
         # Tauto=1, timer starts automatically at the end of the transmission in all communication modes at all speeds
         self.__dev_write(self.REG_TIMER_MODE, 0x8D)
@@ -169,10 +168,10 @@ class RC522:
         self.__dev_write(self.REG_TX_AUTO, 0x40)
         # REG_MODE is 0x3F by default. Set the preset value for the CRC coprocessor to 0x6363 (ISO 14443-3 part 6.2.4)
         self.__dev_write(self.REG_MODE, 0x3D)
-        # Re-enable the antenna driver pins, disabled by __reset()
+        # Re-enable the antenna driver pins, disabled by __soft_reset()
         self.__set_antenna_on()
 
-    def __reset(self):
+    def __soft_reset(self):
         """
         Commands a soft reset to the MFRC522 chip.
         """
@@ -218,7 +217,7 @@ class RC522:
     def __set_antenna_on(self):
         """
         Turns the antenna on by enabling pins TX1 and TX2.
-        After a __reset() these pins are disabled.
+        After a __soft_reset() these pins are disabled.
         """
         temp = self.__dev_read(self.REG_TX_CONTROL)
         if ~(temp & 0x03):
@@ -448,7 +447,7 @@ class RC522:
 
     def auth(self, auth_method, block_number, key, uid) -> int:
         """
-        Performs the authentication for a given block and sets the authenticated class attribute to True.
+        Performs the authentication for a given block and sets the authenticated attribute to True.
         :param auth_method: 0x60 (AUTH_A) or 0x61 (AUTH_B)
         :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
         :param key: key for the authentication
@@ -479,20 +478,10 @@ class RC522:
 
         return status
 
-    def deauth(self):
-        """
-        Stops crypto and sets the authenticated class attribute to False.
-        """
-        if self.authenticated:
-            self.__stop_crypto()
-            self.authenticated = False
-
-            if self.debug:
-                print("[d] RC522.deauth() >>> Stop Crypto1")
-
     def read_block(self, block_number) -> (int, list[int] | None):
         """
         Reads a desired block.
+        Note: it does not manage authentication.
         :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
         :return status: status of the read operation (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
                 read_data: read data
@@ -515,6 +504,7 @@ class RC522:
     def write_block(self, block_number, data) -> int:
         """
         Writes data to a desired block.
+        Note: it does not manage authentication.
         :param block_number: number of the block (from 0 to SECTORS_NUMBER * 4 - 1)
         :param data: data to be written
         :return status: status of the write operation (0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR)
@@ -548,3 +538,16 @@ class RC522:
                 print(f"[d] RC522.write_block(block_number={block_number}) >>> status={status}")
 
         return status
+
+    def reset(self):
+        """
+        Stops crypto, re-initializes the reader for a new communication and sets authenticated attribute to False.
+        Note: reset() is necessary before requesting a new tag, after another one has been selected.
+        """
+        if self.authenticated:
+            self.__stop_crypto()
+            self.__init()
+            self.authenticated = False
+
+            if self.debug:
+                print("[d] RC522.reset() >>> Stop Crypto1, re-init the reader")
