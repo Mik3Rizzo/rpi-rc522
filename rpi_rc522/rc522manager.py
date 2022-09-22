@@ -41,7 +41,7 @@ class RC522Manager:
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
         """
         if self.debug:
-            print(f"[d] >>> RC522Manager.scan(scan_once={scan_once}) ...")
+            print(f"[d] RC522Manager.scan(scan_once={scan_once}) ...")
 
         self.reader.restart_crypto()
         uid_data = []
@@ -67,7 +67,7 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         if self.debug:
-            print(f"[d] >>> RC522Manager.select_tag(uid_data={bytes(uid_data).hex()}) ...")
+            print(f"[d] RC522Manager.select_tag(uid_data={bytes(uid_data).hex()}) ...")
 
         uid = uid_data[0:4]
         if self.uid != uid:
@@ -119,7 +119,7 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
         if self.debug:
-            print(f"[d] >>> RC522Manager.auth(block_number={block_number}, force={force}) ...")
+            print(f"[d] RC522Manager.auth(block_number={block_number}, force={force}) ...")
 
         auth_data = (block_number, self.auth_method, self.key, self.uid)
         status = self.STATUS_OK
@@ -143,6 +143,9 @@ class RC522Manager:
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 read_data: read data
         """
+        if self.debug:
+            print(f"[d] RC522Manager.read_block(block_number={block_number}) ...")
+
         status = self.STATUS_ERR
         read_data = []
 
@@ -171,6 +174,9 @@ class RC522Manager:
         :param new_bytes: list of bytes to be written
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
         """
+        if self.debug:
+            print(f"[d] RC522Manager.write_block(block_number={block_number}, new_bytes={new_bytes}) ...")
+
         if not self.is_auth_set():
             return self.STATUS_ERR
 
