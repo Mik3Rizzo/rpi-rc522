@@ -7,7 +7,7 @@ from .utils import get_block_number, get_block_repr
 
 class RC522Manager:
     """
-    High level class that manages an RC522 RFID Reader.
+    High level class that manages an RC522 RFID Reader connected to a Raspberry Pi.
     """
     DEFAULT_DEV = "/dev/spidev0.0"
     DEFAULT_SPEED = 1000000
@@ -15,6 +15,7 @@ class RC522Manager:
     DEFAULT_KEY = (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)
     DEFAULT_AUTH_BITS = (0xFF, 0x07, 0x80)
     DEFAULT_SECTORS_NUMBER = 16
+    DEFAULT_SCAN_INTERVAL = 0.050  # 50 ms
 
     # RC522 Status
     STATUS_OK = RC522.STATUS_OK
@@ -32,10 +33,11 @@ class RC522Manager:
         
         self.debug: bool = debug
 
-    def scan(self, scan_once: bool = False) -> (int, list[int]):
+    def scan(self, scan_interval: float = DEFAULT_SCAN_INTERVAL, scan_once: bool = False) -> (int, list[int]):
         """
         Scans for a tag once or until a tag appears.
         It restarts Crypto1 and performs anti-collision.
+        :param scan_interval: seconds between two requests.
         :param scan_once: True to scan one time, False to scan until a tag appears
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 uid_data: UID of the tag (4 bytes) concatenated with checksum (1 byte), 5 bytes total
@@ -51,7 +53,7 @@ class RC522Manager:
             (status, tag_type) = self.reader.request_tag()
         else:
             # Wait for the tag
-            (status, tag_type) = self.reader.wait_for_tag()
+            (status, tag_type) = self.reader.wait_for_tag(scan_interval=scan_interval)
 
         if status == self.STATUS_OK:  # there is a tag
             # Perform anti-collision

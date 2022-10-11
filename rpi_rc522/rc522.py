@@ -10,7 +10,7 @@ import spi
 
 class RC522:
     """
-    Low level class that manages a RC522 module, connected via SPI.
+    Low level class that manages a RC522 module, connected via SPI to a Raspberry Pi.
     It is a cheap RFID reader based on the MFRC522 chip.
 
     Note:
@@ -365,9 +365,10 @@ class RC522:
 
         return status, tag_type
 
-    def wait_for_tag(self) -> (int, list[int] | None):
+    def wait_for_tag(self, scan_interval: float) -> (int, list[int] | None):
         """
         Performs tag requests until a new one is discovered.
+        :param scan_interval: seconds between two requests.
         :return status: 0 = OK, 1 = NO_TAG_ERROR, 2 = ERROR
                 tag_type: type of the found tag
                         0x4400 = Mifare_UltraLight
@@ -381,6 +382,7 @@ class RC522:
 
         while status != self.STATUS_OK:
             (status, tag_type) = self.request_tag()
+            time.sleep(scan_interval)
 
         if self.debug:
             print(f"[d] RC522.wait_for_tag() >>> status={status}, tag_type={bytes(tag_type).hex()}")
