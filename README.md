@@ -1,6 +1,6 @@
 # Library rpi-rc522
 
-[rpi-rc522](https://github.com/Mik3Rizzo/rpi-rc522) is a python library written to use the RC522 reader (chip MFRC522) 
+[rpi-rc522](https://github.com/Mik3Rizzo/rpi-rc522) is a python library that manages the RC522 reader (chip MFRC522) 
 on the Raspberry Pi. You can get this cheap NFC reader for less than 3€.
 
 The library is derived from [RC522-Python](https://github.com/STEMinds/RC522-Python) by STEMinds, that is the
@@ -37,7 +37,7 @@ In the `example` folder you can find examples showing how to perform basic NFC o
 code is thoroughly commented and should be easy to understand.
 
 
-## Install
+## Requirements and install
 
 The software requires a specific version of SPI-Py, included in the package. You can install it running the following 
 commands from the root repo folder:
@@ -56,7 +56,7 @@ sudo python3 setup.py install
 ```
 
 
-## Pinout
+## Wiring
 
 | Name  | Pin #  | Pin name |
 |:-----:|:------:|:--------:|
@@ -70,7 +70,7 @@ sudo python3 setup.py install
 | 3.3V  |   1    |   3V3    |
 
 You can use [this](https://www.raspberrypi-spy.co.uk/wp-content/uploads/2012/06/Raspberry-Pi-GPIO-Header-with-Photo.png) 
-image for reference.
+image for the Raspberry Pi pinout reference.
 
 
 ## About
